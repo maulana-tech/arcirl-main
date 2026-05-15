@@ -96,5 +96,45 @@ export async function sendSponsoredTx(params: {
   throw new Error("sendSponsoredTx: not implemented");
 }
 
+// ─── App Kit · Swap ──────────────────────────────────────────────────────────
+// Wraps Circle App Kit's Swap component. Per-call quote then signed execution
+// through the user's embedded wallet. Same chain only — cross-chain goes
+// through Gateway.
+
+export interface SwapQuote {
+  fromToken: `0x${string}`;
+  toToken: `0x${string}`;
+  fromAmount: string;
+  toAmountOut: string;
+  priceImpactPct: number;
+  expiresAt: number;
+  payload: unknown;
+}
+
+export async function quoteSwap(params: {
+  fromToken: `0x${string}`;
+  toToken: `0x${string}`;
+  fromAmount: string;
+  walletAddress: `0x${string}`;
+}): Promise<SwapQuote> {
+  if (!CIRCLE_APP_ID) {
+    throw new Error("VITE_CIRCLE_APP_ID not configured");
+  }
+  // TODO: Call Circle App Kit Swap quote endpoint.
+  throw new Error("quoteSwap: not implemented");
+}
+
+export async function executeSwap(params: {
+  quote: SwapQuote;
+  walletAddress: `0x${string}`;
+  sponsorWithPaymaster?: boolean;
+}): Promise<{ txHash: `0x${string}` }> {
+  if (!CIRCLE_APP_ID) {
+    throw new Error("VITE_CIRCLE_APP_ID not configured");
+  }
+  // TODO: Sign + submit. If sponsorWithPaymaster, route through Paymaster.
+  throw new Error("executeSwap: not implemented");
+}
+
 // ─── Constants re-export for convenience ─────────────────────────────────────
 export { arc, ARC_USDC_ADDRESS };

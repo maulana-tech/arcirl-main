@@ -1,167 +1,195 @@
-# Visco AI
+# Visco AI — Smart Money Copy Agent
 
-> AI-Powered Crypto Analytics & Trading Platform — **SoSoValue Buildathon Submission**
+> Autonomous cross-venue copy-trading agent — **Agora Agents Hackathon submission** (hosted by Canteen, powered by Circle & Arc).
 
 ![Status](https://img.shields.io/badge/Status-Active-22C55E?style=flat-square)
-![Platform](https://img.shields.io/badge/Platform-Ethereum%20%7C%20BSC%20%7C%20Polygon-6366F1?style=flat-square)
-![API](https://img.shields.io/badge/Powered%20by-SoSoValue%20API-8B5CF6?style=flat-square)
+![Settlement](https://img.shields.io/badge/Settlement-Arc%20L1-6366F1?style=flat-square)
+![Stablecoin](https://img.shields.io/badge/Stablecoin-USDC-2775CA?style=flat-square)
 
-**Visco AI** is an intelligent crypto trading platform that combines real-time market data from SoSoValue with AI-driven analysis to generate actionable trading signals and execute trades on-chain via SoDEX.
+**Visco AI** tracks alpha traders across **Hyperliquid perps**, **Polymarket prediction markets**, and **onchain wallets**, generates +EV signals using an autonomous Claude-backed reasoning loop, and executes prediction-market bets via **Polymarket builder codes** — earning USDC fees on every fill while settling on Arc with sub-second finality.
 
-## ✨ Key Features
+## Why this product
 
-### 🤖 AI Signal Center
-- **Whale Detection** — Real-time volume-based smart money activity monitoring
-- **Momentum Scoring** — AI-powered price momentum analysis
-- **Risk Assessment** — Comprehensive token risk scoring with entry/exit recommendations
-- **Market Intelligence** — SoSoValue Index tracking and hot news aggregation
+Smart money migrates across venues — a whale who opens a leveraged BTC long on Hyperliquid often informs a Polymarket "BTC > $X by Y" bet. Existing copy-tools track only one venue. We unify them, and stake-bond the leader on Arc so users have skin in the game on the leader's performance, not just their own.
 
-### 📊 Data Pipeline
+This is a direct execution of three [Research Insights](./CONTEXT.md) the Agora organizers published:
+
+- **Insight 02** — builder codes as monetization
+- **Insight 05** — HL whale cross-migration as a tradable signal
+- **Insight 06** — slash-bonded leaderboard with on-chain performance bonds
+
+## How it scores
+
+| Criteria | Weight | How we hit it |
+|---|---|---|
+| **Agentic Sophistication** | 30% | Anthropic-backed `signal-engine` edge function + `pg_cron` 5-minute autonomous trigger + on-chain reasoning-trace hash pinning to Arc |
+| **Traction** | 30% | Intercepts Polymarket's existing user pool. Builder codes = real USDC fees during event window. Public `BuilderFeeWidget` showing live earnings. |
+| **Circle Tool Usage** | 20% | Wallets (embedded signup), Paymaster (gas-free betting), Gateway (cross-chain USDC funding), Contracts (`LeaderBond` slash-bond on Arc), USDC (native settlement) |
+| **Innovation** | 20% | Cross-venue unification + builder-code monetization + slash-bonded leader bonds — all hinted at by organizers, executed end-to-end |
+
+## Product flow
+
 ```
-SoSoValue API → AI Analysis → Trading Signals → SoDEX Execution → Tx Tracking
+                    ┌──────────────────────────┐
+                    │   Smart Wallet Tracker   │  ← RFB 06 (spine)
+                    │   HL + PM + Onchain      │
+                    └────────────┬─────────────┘
+                                 │
+                    ┌────────────▼─────────────┐
+                    │   Signal Engine (LLM)    │  ← RFB 02 reasoning
+                    │   pg_cron · 5 min        │
+                    └────────────┬─────────────┘
+                                 │
+              ┌──────────────────┼──────────────────┐
+              ▼                  ▼                  ▼
+       ┌────────────┐    ┌────────────┐    ┌────────────┐
+       │ Perps      │    │ Prediction │    │ Onchain    │
+       │ Signal     │    │ Market Bet │    │ Copy       │
+       │ (view-only)│    │ + builder  │    │ (Arc)      │
+       └────────────┘    │   code     │    └────────────┘
+                         └────────────┘
+                                 ▲
+                          Settlement on Arc
+                  Circle Wallets · Paymaster · Gateway
+                          LeaderBond.sol
 ```
 
-### 🔗 API Integrations
+## Stack
 
-| API | Purpose | Status |
-|-----|---------|--------|
-| **SoSoValue** | Market data, news, indices | ✅ Active |
-| **SoDEX** | On-chain trading (testnet) | ✅ Active |
-| **Supabase** | Auth, storage, edge functions | ✅ Active |
+| Layer | Tech |
+|---|---|
+| Framework | React 18 + Vite + TypeScript |
+| Styling | Tailwind + shadcn/ui + Radix |
+| Web3 | wagmi v3 + viem + WalletConnect (Arc + EVM) |
+| Identity + DB + Realtime | Supabase (auth, Postgres, pg_cron, edge functions) |
+| LLM | Anthropic Claude (Opus 4.7 / Sonnet 4.6) via edge function |
+| Execution | Polymarket CLOB (builder code) · Circle Wallets · Paymaster · Gateway |
+| Contracts | Solidity 0.8.24 + Foundry, deployed to Arc |
 
-## 🚀 Quick Start
+## Setup
 
 ### Prerequisites
-- Node.js 18+
-- Bun (recommended) or npm
-- SoSoValue API Key
-- MetaMask or WalletConnect wallet
+- Node 18+, [Bun](https://bun.sh) (recommended)
+- [Foundry](https://book.getfoundry.sh/) for the LeaderBond contract
+- [ARC CLI](https://github.com/the-canteen-dev/ARC-cli) for Arc testnet RPC
 
-### Installation
+### Install
 
 ```bash
-# Clone the repository
-git clone https://github.com/your-username/VicSO-ai.git
-cd VicSO-ai
-
-# Install dependencies
 bun install
-
-# Configure environment
 cp .env.example .env
-# Then edit .env with your API keys
+# Fill in env vars per the table below
 ```
 
-### Environment Variables
+### Required env vars
 
 ```env
-# SoSoValue API — https://sosovalue-1.gitbook.io/sosovalue-api-doc
-VITE_SOSOVALUE_API_KEY=your_sosovalue_api_key
+# Supabase
+VITE_SUPABASE_URL=...
+VITE_SUPABASE_PUBLISHABLE_KEY=...
 
-# SoDEX API — https://sodex.com/documentation/api/api
-VITE_SODEX_API_KEY=your_sodex_api_key
+# Circle Developer Platform — https://developers.circle.com
+VITE_CIRCLE_APP_ID=
 
-# Supabase (already configured)
-VITE_SUPABASE_URL=https://iikuixprsdulnrffedoi.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=sb_publishable_...
-VITE_SUPABASE_PROJECT_ID=iikuixprsdulnrffedoi
+# Polymarket builder code — https://docs.polymarket.com/trading/clients/builder
+VITE_POLYMARKET_BUILDER_ID=
+
+# Arc L1 (from ARC CLI)
+VITE_ARC_RPC=https://arc-node.thecanteenapp.com/
+VITE_ARC_CHAIN_ID=
+VITE_ARC_USDC_ADDRESS=
+
+# Anthropic (Supabase secret, not VITE_)
+# supabase secrets set ANTHROPIC_API_KEY=...
 ```
 
-### Run Development Server
+### Run
 
 ```bash
-bun run dev
+bun run dev            # localhost:8080
 ```
 
-Open [http://localhost:8080](http://localhost:8080)
-
-### Build for Production
+### Build
 
 ```bash
-bun run build      # Production build
-bun run build:dev # Development build (with tagger)
+bun run build
 ```
 
-## 📁 Project Structure
+### Deploy LeaderBond contract
+
+```bash
+cd contracts
+forge install foundry-rs/forge-std --no-commit
+forge script script/Deploy.s.sol --rpc-url arc_testnet --broadcast
+```
+
+See [contracts/README.md](./contracts/README.md) for details.
+
+### Apply Supabase migrations
+
+```bash
+supabase db push
+supabase functions deploy signal-engine
+supabase functions deploy hyperliquid-fetch
+supabase functions deploy polymarket-traders
+supabase functions deploy ave-wallet
+```
+
+Set up the `pg_cron` job to trigger the signal engine every 5 minutes (run once in SQL editor):
+
+```sql
+SELECT cron.schedule(
+  'signal-engine-tick',
+  '*/5 * * * *',
+  $$SELECT net.http_post(
+    url := 'https://<project>.supabase.co/functions/v1/signal-engine',
+    headers := jsonb_build_object('Content-Type', 'application/json')
+  );$$
+);
+```
+
+## Repo layout
 
 ```
 src/
-├── lib/                        # API clients
-│   ├── sosovalue.ts            # SoSoValue API wrapper
-│   └── sodex.ts               # SoDEX API wrapper
-├── hooks/                      # React hooks
-│   ├── useAISignals.ts        # AI signal generation
-│   ├── useSoDEXSwap.ts        # Swap execution
-│   ├── useTokenAPI.ts         # Token data fetching
-│   └── useTransactionTracker.ts
-├── components/                  # UI components
-│   ├── SignalWidget.tsx       # AI signals dashboard
-│   ├── SoSoValueWidget.tsx    # SoSoValue data display
-│   ├── TradeConfirmModal.tsx  # Trade confirmation
-│   └── TransactionHistory.tsx
-└── pages/
-    ├── Index.tsx              # Dashboard
-    └── AICommandCenter.tsx    # AI chat + signals
+  lib/
+    arc.ts              Arc L1 chain config
+    circle.ts           Circle Wallets / Paymaster / Gateway wrappers
+    polymarket.ts       Polymarket CLOB client (with builder code)
+    wagmiConfig.ts      wagmi v3 config (Arc + EVM)
+  hooks/
+    useSmartWallets     Multi-venue wallet tracking
+    useUnifiedSignals   Signal feed (Supabase Realtime subscribe)
+    usePolymarket       PM market reads
+    useExecutePMBet     Bet execution with builder code attached
+    usePerpsIntel       HL whale position fetcher
+  pages/
+    Index.tsx           Autonomous signal feed + builder fees widget
+    PredictionMarkets   Polymarket browser, filterable by signal coverage
+    MarketDetail        Single market + agent reasoning + bet flow
+    PerpsIntel          HL whale positions (leading indicator for PM)
+    SmartMoney          Venue-tabbed wallet tracker
+    WalletDetail        Per-wallet activity (venue-aware)
+  components/
+    ReasoningTraceCard  Expandable signal card with reasoning trace + Arc hash
+    BetConfirmModal     Bet flow with builder fee disclosure
+    BuilderFeeWidget    Public live-earnings counter
+supabase/
+  functions/
+    signal-engine       Autonomous Claude-backed signal generator (pg_cron triggered)
+    hyperliquid-fetch   HL leaderboard + per-trader positions
+    polymarket-traders  PM markets + top traders
+    ave-wallet          Onchain wallet inspection (Moralis + AVE)
+contracts/
+  src/LeaderBond.sol    USDC performance bond on tracked leaders, slashable by oracle
 ```
 
-## 🎯 How It Works
+## Submission
 
-### 1. Data Collection
-VicSO connects to SoSoValue API to fetch real-time market data:
-- Token prices and market cap
-- 24h volume and price changes
-- Token economics and allocations
-- Hot news and market sentiment
+- **Form**: https://forms.gle/hFPM2t4Jt1zGfqzM7
+- **Migration plan**: [`PLANNING.md`](./PLANNING.md)
+- **Hackathon context**: [`CONTEXT.md`](./CONTEXT.md)
 
-### 2. AI Analysis
-The AI engine analyzes data to generate:
-- **Whale Activity Score** — Detects unusual trading patterns
-- **Momentum Score** — Measures price trend strength
-- **Risk Score** — Evaluates token safety metrics
-- **Volume Score** — Assesses trading activity level
+## License
 
-### 3. Signal Generation
-Based on analysis, the system generates:
-- BUY/SELL/HOLD recommendations
-- Entry price targets
-- Stop-loss levels
-- Confidence scores
-
-### 4. Trade Execution
-Users can execute trades via SoDEX:
-- Market data from SoDEX orderbook
-- Wallet-connected signing
-- Risk confirmation modal
-- Transaction tracking
-
-## ⚖️ Buildathon Alignment
-
-| Judging Criteria | Implementation |
-|-----------------|----------------|
-| **User Value (30%)** | Real-time signals, whale tracking, risk assessment |
-| **Functionality (25%)** | Complete data→action flow |
-| **Logic/Design (20%)** | Clean architecture, modular components |
-| **API Integration (15%)** | SoSoValue + SoDEX APIs |
-| **UX (10%)** | shadcn/ui, dark mode, responsive |
-
-## 📚 Resources
-
-- **SoSoValue API**: https://sosovalue-1.gitbook.io/sosovalue-api-doc
-- **SoDEX API**: https://sodex.com/documentation/api/api
-- **Buildathon Form**: https://forms.gle/2nuJT2qNbUQsyyZy8
-
-## 🛠️ Tech Stack
-
-| Category | Technology |
-|----------|------------|
-| Framework | React 18 + Vite + TypeScript |
-| Styling | Tailwind CSS + shadcn/ui |
-| Web3 | wagmi v3 + viem + WalletConnect |
-| Data | @tanstack/react-query v5 |
-| Backend | Supabase |
-| AI | SoSoValue API + Custom ML |
-| Animation | Framer Motion |
-
-## 📝 License
-
-MIT License
+MIT

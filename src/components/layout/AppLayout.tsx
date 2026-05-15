@@ -3,7 +3,6 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   LayoutDashboard,
-  Search,
   Users,
   Bell,
   Settings,
@@ -14,10 +13,10 @@ import {
   Shield,
   LogIn,
   LogOut,
-  ArrowUpDown,
   Wallet,
-  Zap,
   PieChart,
+  TrendingUp,
+  Zap,
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,9 +26,8 @@ import WalletConnectModal from "@/components/WalletConnectModal";
 
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Feed" },
-  { to: "/trading", icon: ArrowUpDown, label: "Trading" },
-  { to: "/ai", icon: Sparkles, label: "AI" },
-  { to: "/analyzer", icon: Search, label: "Analyzer" },
+  { to: "/markets", icon: TrendingUp, label: "Markets" },
+  { to: "/perps", icon: Zap, label: "Perps Intel" },
   { to: "/smart-money", icon: Users, label: "Smart Money" },
   { to: "/portfolio", icon: PieChart, label: "Portfolio" },
   { to: "/alerts", icon: Bell, label: "Alerts" },
@@ -203,16 +201,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
             <div className="rounded-lg p-3 border border-border">
               <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-                <Zap className="h-3.5 w-3.5" />
-                VicSO Skills
+                <Sparkles className="h-3.5 w-3.5" />
+                Signal Engine
               </div>
               <div className="mt-2 flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-primary" />
-                <span className="text-xs text-foreground">8 skills online</span>
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span className="text-xs text-foreground">Autonomous · Arc-settled</span>
               </div>
             </div>
 
-            <p className="text-[9px] text-center text-muted-foreground">Powered by VicSO Skills</p>
+            <p className="text-[9px] text-center text-muted-foreground">Smart Money Copy Agent · Visco AI</p>
           </div>
         </div>
       </aside>

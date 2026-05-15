@@ -113,7 +113,8 @@ Cross-venue copy-trading agent — one product, three sources of alpha:
 | `src/components/BetConfirmModal.tsx` (with builder fee disclosure + stub warning) | ✅ |
 | `src/components/BuilderFeeWidget.tsx` (live earnings counter, Realtime subscribed) | ✅ |
 | Routes/nav updated; `/trading` `/ai` `/analyzer` removed | ✅ |
-| Deleted: `sosovalue.ts`, `sodex.ts`, `useSoDEXSwap`, `Trading.tsx`, `TokenAnalyzer.tsx`, `AICommandCenter.tsx`, `ExecuteTradeButton.tsx`, old `TradeConfirmModal.tsx` | ✅ |
+| Deleted: `sosovalue.ts`, `sodex.ts`, `useSoDEXSwap`, `ExecuteTradeButton.tsx`, old `TradeConfirmModal.tsx` | ✅ |
+| **Restored as Agora-native rebuilds** (later in session): `Trading.tsx` (whale-driven swap), `TokenAnalyzer.tsx` (signals + smart-money exposure), `AICommandCenter.tsx` (agent chat) — original SoSoValue/SoDEX-locked versions stay deleted | ✅ |
 
 **Deferred** (needs external setup before live path is real, not blocked work):
 - Circle Wallets embedded signup wiring in `Auth.tsx` (stub interface in place via `src/lib/circle.ts`)
@@ -141,6 +142,21 @@ Cross-venue copy-trading agent — one product, three sources of alpha:
 - Edge function `oracle-leaderboard-rank` (pull rank, call `reportRank()`)
 - UI: "Bond on this whale" button in `WalletDetail.tsx`
 - `src/pages/MyBonds.tsx`
+
+### ✅ Phase 7 — Restored Pages (Agora-native rebuilds)
+
+The original SoSoValue/SoDEX-locked Trading, TokenAnalyzer, and AICommandCenter pages were deleted in Phase 3. The user asked them restored — rebuilt to integrate with the new architecture.
+
+| Deliverable | Status |
+|---|---|
+| `supabase/functions/agent-chat` (Anthropic-backed chat with signals + wallets + bets context) | ✅ |
+| `src/hooks/useAgentChat.ts` | ✅ |
+| `src/hooks/useTokenInfo.ts` (AVE-token wrapper) | ✅ |
+| `src/pages/AICommandCenter.tsx` (chat UI with live signal context strip + quick prompts) | ✅ |
+| `src/pages/TokenAnalyzer.tsx` (token risk + agent signals + smart-money exposure cross-links) | ✅ |
+| `src/pages/Trading.tsx` (whale-driven swap UI, Circle Wallet stub mode, signal-aware) | ✅ |
+| `src/lib/circle.ts` extended with `quoteSwap` + `executeSwap` stubs | ✅ |
+| Routes restored at `/trading`, `/analyzer`, `/ai`; nav items added | ✅ |
 
 ### ✅ Phase 6 — Polish & Submission Prep
 

@@ -1,4 +1,6 @@
-# Vicso AI — Agent Instructions
+# Visco AI — Agent Instructions
+
+Concise dev guide. For the bigger picture see [`CLAUDE.md`](./CLAUDE.md), for product/hackathon context see [`PLANNING.md`](./PLANNING.md) and [`CONTEXT.md`](./CONTEXT.md).
 
 ## Dev Commands
 
@@ -12,19 +14,29 @@ bun run test:watch   # vitest watch
 bun run preview      # vite preview
 ```
 
-No typecheck script. ESLint uses `typescript-eslint` internally.
+No typecheck script. ESLint uses `typescript-eslint`.
+
+Contracts (Foundry):
+```bash
+cd contracts
+forge install foundry-rs/forge-std --no-commit
+forge build
+forge script script/Deploy.s.sol --rpc-url arc_testnet --broadcast
+```
 
 ## Stack
 
-- **Package manager**: bun (bun.lock + bun.lockb are authoritative; `package.json` `packageManager` field is stale)
+- **Package manager**: bun (`bun.lock` + `bun.lockb` authoritative; `package.json` `packageManager` field is stale)
 - **Framework**: Vite 5 + React 18 + TypeScript 5
-- **UI**: shadcn/ui (style: default, baseColor: slate, cssVariables) + Tailwind CSS 3 + Radix primitives
+- **UI**: shadcn/ui (style: default, baseColor: slate) + Tailwind CSS 3 + Radix
 - **Routing**: react-router-dom v6
-- **Web3**: wagmi v3 + viem v2 + WalletConnect (chains: mainnet, bsc, polygon, arbitrum; connectors: injected, walletConnect)
-- **Backend**: Supabase (@supabase/supabase-js) + Edge Functions (supabase/functions/)
+- **Web3**: wagmi v3 + viem v2 + WalletConnect — chains: **arc** (custom L1), mainnet, bsc, polygon, arbitrum
+- **Backend**: Supabase (auth, Postgres, Realtime, pg_cron, edge functions)
+- **LLM**: Anthropic Claude via `signal-engine` edge function
 - **Data fetching**: @tanstack/react-query v5
 - **Charts**: lightweight-charts, recharts, framer-motion
 - **Testing**: vitest 3 (unit) + @playwright/test (e2e via lovable-agent-playwright-config)
+- **Contracts**: Solidity 0.8.24 + Foundry → Arc testnet
 
 ## Path Alias
 
@@ -32,18 +44,20 @@ No typecheck script. ESLint uses `typescript-eslint` internally.
 
 ## Architecture
 
-- `src/App.tsx` — root component with provider nesting: WagmiProvider → QueryClientProvider → TooltipProvider → Sonner → BrowserRouter → AuthProvider → Routes
-- All routes wrapped in `AppLayout` except `/auth`
-- Pages in `src/pages/`, components in `src/components/`, hooks in `src/hooks/`
-- shadcn/ui in `src/components/ui/`
-- `src/lib/` — wagmi config, API wrappers (coingecko, binance, cryptocompare, sosovalue, sodex), utils
-- Supabase auth in `src/contexts/AuthContext.tsx`; client auto-generated at `src/integrations/supabase/client.ts` (do not edit)
-- Supabase Edge Functions in `supabase/functions/` (openclaw-chat, ai-analyze, wallet-scan, ave-wallet, ave-token, ave-klines)
-- Wagmi config at `src/lib/wagmiConfig.ts` (WalletConnect project ID hardcoded)
+- `src/App.tsx` — provider stack: WagmiProvider → QueryClientProvider → TooltipProvider → Sonner → BrowserRouter → AuthProvider → Routes. All routes wrapped in `AppLayout` except `/auth`.
+- `src/lib/` — chain configs + SDK wrappers: `arc.ts`, `wagmiConfig.ts`, `circle.ts`, `polymarket.ts`, plus fallback price oracles `binance.ts` / `coingecko.ts` / `cryptocompare.ts`.
+- `src/hooks/` — data layer: `useSmartWallets` (multi-venue tracker), `useUnifiedSignals` (realtime signal feed), `useExecutePMBet` (bet exec with builder code), `usePerpsIntel` (HL whale positions), `usePolymarket` (market reads), `useAVEWallet` (onchain inspect). Plus generic utilities.
+- `src/pages/` — Index (signal feed), PredictionMarkets / MarketDetail, PerpsIntel, SmartMoney / WalletDetail, Portfolio, Alerts, Profile, Settings, Admin, Auth, NotFound.
+- `src/components/` — `ReasoningTraceCard`, `BetConfirmModal`, `BuilderFeeWidget`, dashboard/layout/ui (shadcn).
+- `src/contexts/AuthContext.tsx` — Supabase auth. Auth strategy: Supabase (identity) + Circle Wallets (on-chain execution).
+- `src/integrations/supabase/client.ts` — **auto-generated, do not edit**.
+- `supabase/functions/` — `signal-engine`, `hyperliquid-fetch`, `polymarket-traders`, `ave-wallet`, `ave-token`, `ave-klines`, `wallet-scan`.
+- `supabase/migrations/` — `tracked_wallets.venue`, `signals`, `bet_history`.
+- `contracts/` — Foundry workspace with `LeaderBond.sol`.
 
 ## Vite Config
 
-Dev server on `:::8080`, HMR overlay disabled. `componentTagger` from `lovable-tagger` runs only in development mode. Deduplicates: react, react-dom, react/jsx-runtime, react/jsx-dev-runtime, @tanstack/react-query, @tanstack/query-core.
+Dev server `:::8080`, HMR overlay disabled. `componentTagger` (from `lovable-tagger`) only in development mode. Deduplicates: react, react-dom, react/jsx-runtime, react/jsx-dev-runtime, @tanstack/react-query, @tanstack/query-core.
 
 ## TypeScript
 
@@ -51,28 +65,41 @@ Dev server on `:::8080`, HMR overlay disabled. `componentTagger` from `lovable-t
 
 ## Tailwind
 
-Dark mode via `class`. Custom neon color palette (`neon-pink/green/blue/purple/orange`) in `tailwind.config.ts`. Uses `tailwindcss-animate` + `@tailwindcss/typography` plugins. Font families: `heading` (Space Grotesk), `body` (Space Grotesk), `mono` (JetBrains Mono).
+Dark mode via `class`. Custom neon palette (`neon-pink/green/blue/purple/orange`) in `tailwind.config.ts`. Plugins: `tailwindcss-animate`, `@tailwindcss/typography`. Fonts: heading & body = Space Grotesk, mono = JetBrains Mono.
 
 ## Test Setup
 
-Vitest: jsdom environment with globals. Setup: `src/test/setup.ts` (matchMedia polyfill + @testing-library/jest-dom). Test files: `src/**/*.{test,spec}.{ts,tsx}`. E2E: `playwright-fixture.ts` re-exports from `lovable-agent-playwright-config/fixture`; config at `playwright.config.ts` via `createLovableConfig`.
+Vitest: jsdom environment + globals. Setup `src/test/setup.ts` (matchMedia polyfill + @testing-library/jest-dom). Test glob `src/**/*.{test,spec}.{ts,tsx}`. Playwright fixture re-exports `lovable-agent-playwright-config/fixture`; config at `playwright.config.ts` via `createLovableConfig`.
 
 ## ESLint
 
-Ignores `dist`. `@typescript-eslint/no-unused-vars` is off. React Refresh `only-export-components` is warn-only.
+Ignores `dist`. `@typescript-eslint/no-unused-vars` off. `react-refresh/only-export-components` warn-only.
 
 ## Env vars
 
-- `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`, `VITE_SUPABASE_PROJECT_ID` (project ID: `iikuixprsdulnrffedoi`)
-- `VITE_SOSOVALUE_API_KEY` (required for market data)
-- `VITE_SODEX_API_KEY` (optional, for on-chain trading)
-- `.env.example` exists with all keys documented
+| Var | Where | Required for |
+|---|---|---|
+| `VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY` | client | Always |
+| `VITE_CIRCLE_APP_ID` | client | Live Circle Wallets + Paymaster + Gateway |
+| `VITE_POLYMARKET_BUILDER_ID` | client | Live bet execution + fee attribution |
+| `VITE_ARC_CHAIN_ID`, `VITE_ARC_RPC`, `VITE_ARC_USDC_ADDRESS` | client | Arc L1 wallet + USDC settlement |
+| `ANTHROPIC_API_KEY` | Supabase secret | Live `signal-engine` (stub mode if unset) |
+
+`.env.example` documents all keys. **Never commit `.env*`**.
+
+## Stub-vs-live modes
+
+App is demoable without external setup. Stub fallback active when env vars unset:
+- `signal-engine` returns deterministic stub signals (`is_stub: true`).
+- `useExecutePMBet` records bets with `status: STUB` and surfaces an amber disclosure in `BetConfirmModal`.
+
+Switch to live by populating the env vars above + registering builder code + deploying `LeaderBond.sol`.
 
 ## Deployment
 
-`vercel.json` with SPA rewrite rules (`/(.*)` → `/index.html`). No CI config found (no `.github/`).
+`vercel.json` with SPA rewrite (`/(.*)` → `/index.html`). No CI config.
 
 ## Generated / ignore
 
-- `.lovable/` — build-time component tagging artifacts, safe to ignore
-- `src/integrations/supabase/client.ts` — auto-generated Supabase client, do not edit
+- `.lovable/` — build-time component tagging artifacts, safe to ignore.
+- `src/integrations/supabase/client.ts` — auto-generated, do not edit.

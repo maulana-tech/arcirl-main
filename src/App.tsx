@@ -10,6 +10,9 @@ import Index from "./pages/Index";
 import PredictionMarkets from "./pages/PredictionMarkets";
 import MarketDetail from "./pages/MarketDetail";
 import PerpsIntel from "./pages/PerpsIntel";
+import Trading from "./pages/Trading";
+import TokenAnalyzer from "./pages/TokenAnalyzer";
+import AICommandCenter from "./pages/AICommandCenter";
 import SmartMoney from "./pages/SmartMoney";
 import WalletDetail from "./pages/WalletDetail";
 import Alerts from "./pages/Alerts";
@@ -40,6 +43,9 @@ const App = () => (
                       <Route path="/markets" element={<PredictionMarkets />} />
                       <Route path="/markets/:marketId" element={<MarketDetail />} />
                       <Route path="/perps" element={<PerpsIntel />} />
+                      <Route path="/trading" element={<Trading />} />
+                      <Route path="/analyzer" element={<TokenAnalyzer />} />
+                      <Route path="/ai" element={<AICommandCenter />} />
                       <Route path="/smart-money" element={<SmartMoney />} />
                       <Route path="/smart-money/:address" element={<WalletDetail />} />
                       <Route path="/portfolio" element={<Portfolio />} />

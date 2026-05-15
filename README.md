@@ -162,12 +162,17 @@ src/
     useUnifiedSignals   Signal feed (Supabase Realtime subscribe)
     usePolymarket       PM market reads
     useExecutePMBet     Bet execution with builder code attached
+    useAgentChat        Conversational interface to agent-chat edge function
     usePerpsIntel       HL whale position fetcher
+    useTokenInfo        AVE-backed token data (risk, mcap, honeypot flags)
   pages/
     Index.tsx           Autonomous signal feed + builder fees widget
     PredictionMarkets   Polymarket browser, filterable by signal coverage
     MarketDetail        Single market + agent reasoning + bet flow
     PerpsIntel          HL whale positions (leading indicator for PM)
+    Trading             Whale-driven swap, Circle Wallet, signal-aware
+    TokenAnalyzer       Per-token risk + agent signals + smart-money exposure
+    AICommandCenter     Conversational chat to the agent (Anthropic-backed)
     SmartMoney          Venue-tabbed wallet tracker
     WalletDetail        Per-wallet activity (venue-aware)
   components/
@@ -177,6 +182,7 @@ src/
 supabase/
   functions/
     signal-engine       Autonomous Claude-backed signal generator (pg_cron triggered)
+    agent-chat          Conversational Claude endpoint with live signals/wallets/bets context
     hyperliquid-fetch   HL leaderboard + per-trader positions
     polymarket-traders  PM markets + top traders
     ave-wallet          Onchain wallet inspection (Moralis + AVE)

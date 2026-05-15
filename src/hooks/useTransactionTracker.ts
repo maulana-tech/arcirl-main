@@ -14,7 +14,7 @@ export interface Transaction {
   blockNumber?: number;
   gasUsed?: string;
   error?: string;
-  source: "sodex" | "sosovalue";
+  source: "polymarket" | "arc" | "hyperliquid";
 }
 
 export interface TransactionState {

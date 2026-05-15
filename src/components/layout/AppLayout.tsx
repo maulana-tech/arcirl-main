@@ -17,6 +17,9 @@ import {
   PieChart,
   TrendingUp,
   Zap,
+  ArrowUpDown,
+  Search,
+  Bot,
 } from "lucide-react";
 import logoImg from "@/assets/logo.png";
 import { useAuth } from "@/contexts/AuthContext";
@@ -27,7 +30,10 @@ import WalletConnectModal from "@/components/WalletConnectModal";
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Feed" },
   { to: "/markets", icon: TrendingUp, label: "Markets" },
-  { to: "/perps", icon: Zap, label: "Perps Intel" },
+  { to: "/perps", icon: Zap, label: "Perps" },
+  { to: "/trading", icon: ArrowUpDown, label: "Trading" },
+  { to: "/ai", icon: Bot, label: "AI" },
+  { to: "/analyzer", icon: Search, label: "Analyzer" },
   { to: "/smart-money", icon: Users, label: "Smart Money" },
   { to: "/portfolio", icon: PieChart, label: "Portfolio" },
   { to: "/alerts", icon: Bell, label: "Alerts" },

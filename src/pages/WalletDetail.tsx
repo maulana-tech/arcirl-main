@@ -49,6 +49,7 @@ export default function WalletDetail() {
   const { user } = useAuth();
   const decodedAddress = decodeURIComponent(address || "");
   const chainParam = searchParams.get("chain") || "eth";
+  const venueParam = (searchParams.get("venue") as "onchain" | "hyperliquid" | "polymarket") || "onchain";
   const [selectedChain, setSelectedChain] = useState(chainParam);
   const [activeTab, setActiveTab] = useState<TabType>("overview");
   const [txPage, setTxPage] = useState(0);
@@ -110,6 +111,16 @@ export default function WalletDetail() {
     { id: "pnl", label: "Recent PnL" },
     { id: "holdings", label: "Holdings" },
   ];
+
+  if (venueParam !== "onchain") {
+    return (
+      <VenueWalletPlaceholder
+        venue={venueParam}
+        address={decodedAddress}
+        onBack={() => navigate("/smart-money")}
+      />
+    );
+  }
 
   return (
     <div className="space-y-5">
@@ -409,6 +420,50 @@ export default function WalletDetail() {
           </motion.div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ─── Venue placeholder (HL / PM) ────────────────────────────────────────────
+// Phase 1 surfaces the address + tracking confirmation. Full venue activity
+// rendering lands in Phase 4 (PerpsIntel for HL) and Phase 3 (Polymarket
+// position view via Gamma data-api).
+
+function VenueWalletPlaceholder({
+  venue, address, onBack,
+}: {
+  venue: "hyperliquid" | "polymarket";
+  address: string;
+  onBack: () => void;
+}) {
+  const label = venue === "hyperliquid" ? "Hyperliquid Whale" : "Polymarket Trader";
+  const note =
+    venue === "hyperliquid"
+      ? "Live perp positions and account state will render here once Phase 4 PerpsIntel ships. The address is already tracked — signals reference its moves as leading indicators for PM bets."
+      : "Open positions, recent fills, and PnL will surface here once Phase 3 Polymarket execution ships. The address is tracked and feeds the unified signal engine.";
+
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center gap-3">
+        <button onClick={onBack} className="rounded-lg border border-border p-2 text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <div className="flex-1 min-w-0">
+          <h1 className="font-heading text-lg sm:text-xl font-bold text-foreground">{label}</h1>
+          <p className="font-mono text-xs text-muted-foreground truncate">{address}</p>
+        </div>
+        <button
+          onClick={() => { navigator.clipboard.writeText(address); toast.success("Copied"); }}
+          className="rounded-lg border border-border p-2 text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <Copy className="h-4 w-4" />
+        </button>
+      </div>
+
+      <div className="rounded-xl border border-border bg-card p-5">
+        <p className="text-sm text-foreground font-medium">Cross-venue view in progress</p>
+        <p className="mt-2 text-xs text-muted-foreground leading-relaxed">{note}</p>
+      </div>
     </div>
   );
 }

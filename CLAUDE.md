@@ -56,6 +56,9 @@ forge script script/Deploy.s.sol --rpc-url arc_testnet --broadcast
 | `/markets` | `PredictionMarkets.tsx` | Polymarket browser, filterable by signal coverage |
 | `/markets/:marketId` | `MarketDetail.tsx` | Single market + agent reasoning + bet flow |
 | `/perps` | `PerpsIntel.tsx` | Top Hyperliquid whales' positions (leading indicator for PM bets) |
+| `/trading` | `Trading.tsx` | Whale-driven token swap (Circle Wallet stub mode; sources signals + AVE data) |
+| `/analyzer` | `TokenAnalyzer.tsx` | Per-token risk + agent signals + smart-money exposure cross-links |
+| `/ai` | `AICommandCenter.tsx` | Conversational chat to the agent — context: live signals, tracked wallets, bet history |
 | `/smart-money` | `SmartMoney.tsx` | Venue-tabbed wallet tracker (HL / PM / Onchain) |
 | `/smart-money/:address` | `WalletDetail.tsx` | Per-wallet activity (venue-aware via `?venue=` query) |
 | `/portfolio`, `/alerts`, `/profile`, `/settings`, `/admin`, `/auth` | (stock pages) | Identity + admin shells |
@@ -76,8 +79,10 @@ forge script script/Deploy.s.sol --rpc-url arc_testnet --broadcast
 | `useSmartWallets(venue)` | Multi-venue tracked-wallet CRUD on Supabase `tracked_wallets` |
 | `useUnifiedSignals({venue?, limit?})` | Realtime-subscribed signal feed; exports `triggerSignalEngine()` |
 | `useExecutePMBet` | Bet execution; logs to `bet_history`; builder code attached; stub mode when env unset |
+| `useAgentChat` | Conversational interface to `agent-chat` edge function (Anthropic with stub fallback) |
 | `usePerpsIntel` | Top HL traders + their open positions (fan-out fetch) |
 | `usePolymarket` | PM market reads (`usePMMarkets`, `usePMMarket`) |
+| `useTokenInfo(query)` | AVE-backed token data — risk score, price, mcap, holders, honeypot flags |
 | `useAVEWallet` | Onchain wallet inspection (Moralis + AVE) — used by WalletDetail/Portfolio onchain views |
 | `useAlerts`, `useDashboardStats`, `useLocalStorage`, `useSettings`, `useUserProfile`, `useWalletConnection`, `useWalletScan`, `useTransactionTracker`, `useTokenHistory`, `usePositions`, `useTrackedWallets` | Generic/UI utilities |
 
@@ -97,6 +102,7 @@ Notable non-`ui/` components:
 - **Auth** in `src/contexts/AuthContext.tsx`. Strategy: Supabase (identity) + Circle Wallets (on-chain execution) — dual.
 - **Edge functions** in `supabase/functions/`:
   - `signal-engine` — autonomous Claude-backed signal generator. Reads tracked wallets + PM markets, asks Claude for +EV signals, persists to `signals`. Stub mode when `ANTHROPIC_API_KEY` is unset.
+  - `agent-chat` — conversational Claude endpoint with live context (recent signals + tracked wallets + bet history). Stub fallback when key unset.
   - `hyperliquid-fetch` — HL leaderboard + per-trader clearinghouse state + positions
   - `polymarket-traders` — PM active markets + top traders + user activity (via Gamma + data-api)
   - `ave-wallet`, `ave-token`, `ave-klines` — onchain data backbone (Moralis + AVE)

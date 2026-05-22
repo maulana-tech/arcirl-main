@@ -15,8 +15,8 @@
     --popover: 220 12% 8%;
     --popover-foreground: 220 15% 90%;
 
-    --primary: 38 90% 55%;
-    --primary-hover: 38 90% 48%;
+    --primary: 76 54% 50%;
+    --primary-hover: 76 54% 43%;
     --primary-foreground: 220 15% 5%;
 
     --secondary: 220 12% 12%;
@@ -33,11 +33,11 @@
 
     --border: 220 10% 15%;
     --input: 220 10% 15%;
-    --ring: 38 90% 55%;
+    --ring: 76 54% 50%;
 
-    --radius: 0.5rem;
-    --radius-sm: 0.25rem;
-    --radius-lg: 0.75rem;
+    --radius: 0rem;
+    --radius-sm: 0rem;
+    --radius-lg: 0rem;
 
     --signal-buy: 145 55% 45%;
     --signal-sell: 0 65% 50%;
@@ -49,12 +49,12 @@
 
     --sidebar-background: 220 15% 4%;
     --sidebar-foreground: 220 15% 80%;
-    --sidebar-primary: 38 90% 55%;
+    --sidebar-primary: 76 54% 50%;
     --sidebar-primary-foreground: 220 15% 5%;
     --sidebar-accent: 220 12% 12%;
     --sidebar-accent-foreground: 220 15% 85%;
     --sidebar-border: 220 10% 12%;
-    --sidebar-ring: 38 90% 55%;
+    --sidebar-ring: 76 54% 50%;
   }
 }
 

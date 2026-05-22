@@ -1,297 +1,172 @@
-import { useState, useRef, useEffect } from "react";
-import { motion } from "framer-motion";
-import { Bot, Send, Loader2, Sparkles, Search, Wallet, TrendingUp, Shield, Zap, BarChart3, History, Trash2, Clock, LayoutGrid } from "lucide-react";
-import { useAIAnalysis } from "@/hooks/useTokenAPI";
-import { useNavigate } from "react-router-dom";
-import SignalWidget from "@/components/SignalWidget";
+import { useEffect, useRef, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Bot, Send, Sparkles, RotateCcw, Loader2, User, Zap } from "lucide-react";
+import { useAgentChat } from "@/hooks/useAgentChat";
+import { useUnifiedSignals } from "@/hooks/useUnifiedSignals";
 
-interface ChatMessage {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  verdict?: string;
-  tokenSymbol?: string;
-  timestamp: number;
-}
-
-interface ChatSession {
-  id: string;
-  title: string;
-  messages: ChatMessage[];
-  timestamp: number;
-}
-
-const HISTORY_KEY = "cn_ai_chat_history";
-
-function loadHistory(): ChatSession[] {
-  try { return JSON.parse(localStorage.getItem(HISTORY_KEY) || "[]"); } catch { return []; }
-}
-function saveHistory(sessions: ChatSession[]) {
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(sessions.slice(0, 50)));
-}
-
-const quickActions = [
-  { icon: TrendingUp, label: "What's trending?", query: "What tokens are trending right now?" },
-  { icon: Search, label: "Analyze ETH", query: "Analyze ETH" },
-  { icon: Wallet, label: "Track whales", query: "What are whales buying?" },
-  { icon: Shield, label: "Portfolio risk", query: "Show me low-risk tokens with high potential" },
-  { icon: Zap, label: "Should I buy SOL?", query: "Should I buy SOL?" },
-  { icon: BarChart3, label: "Best opportunities", query: "What are the best investment opportunities right now?" },
+const QUICK_PROMPTS = [
+  "What's the strongest signal right now?",
+  "Why did the engine flag that market?",
+  "Which whale is the most active today?",
+  "Should I bet on the top signal?",
+  "Summarize what's happened in the last hour.",
 ];
 
 export default function AICommandCenter() {
+  const { messages, send, pending, error, reset } = useAgentChat();
+  const { signals } = useUnifiedSignals({ limit: 5 });
   const [input, setInput] = useState("");
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [activeTab, setActiveTab] = useState<"chat" | "signals" | "history">("chat");
-  const [chatHistory, setChatHistory] = useState<ChatSession[]>(loadHistory);
-  const { analysis, loading, error, analyze } = useAIAnalysis();
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-  const navigate = useNavigate();
+  const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (analysis) {
-      const assistantMsg: ChatMessage = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: analysis.conversational || "Analysis complete.",
-        verdict: analysis.verdict,
-        tokenSymbol: analysis.tokenData?.symbol,
-        timestamp: Date.now(),
-      };
-      setMessages(prev => {
-        const next = [...prev, assistantMsg];
-        // Save to history
-        if (next.length >= 2) {
-          const firstUserMsg = next.find(m => m.role === "user");
-          const session: ChatSession = {
-            id: crypto.randomUUID(),
-            title: firstUserMsg?.content.slice(0, 60) || "Chat",
-            messages: next,
-            timestamp: Date.now(),
-          };
-          setChatHistory(prev => {
-            const updated = [session, ...prev.filter(s => s.title !== session.title)].slice(0, 50);
-            saveHistory(updated);
-            return updated;
-          });
-        }
-        return next;
-      });
-    }
-  }, [analysis]);
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages.length, pending]);
 
-  useEffect(() => {
-    if (error) {
-      setMessages(prev => [...prev, { id: crypto.randomUUID(), role: "assistant", content: `❌ Error: ${error}`, timestamp: Date.now() }]);
-    }
-  }, [error]);
-
-  useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  const handleSend = (text?: string) => {
-    const q = (text || input).trim();
-    if (!q || loading) return;
-    setMessages(prev => [...prev, { id: crypto.randomUUID(), role: "user", content: q, timestamp: Date.now() }]);
+  const handleSend = async (text?: string) => {
+    const content = (text ?? input).trim();
+    if (!content || pending) return;
     setInput("");
-    analyze(q, true);
-  };
-
-  const loadSession = (session: ChatSession) => {
-    setMessages(session.messages);
-    setActiveTab("chat");
-  };
-
-  const clearHistory = () => {
-    setChatHistory([]);
-    saveHistory([]);
-  };
-
-  const removeSession = (id: string) => {
-    setChatHistory(prev => {
-      const updated = prev.filter(s => s.id !== id);
-      saveHistory(updated);
-      return updated;
-    });
-  };
-
-  const verdictColor = (v?: string) => {
-    if (v === "BUY") return "bg-emerald-500/10 text-emerald-500 border-emerald-500/30";
-    if (v === "AVOID") return "bg-red-500/10 text-red-500 border-red-500/30";
-    return "bg-amber-500/10 text-amber-500 border-amber-500/30";
+    await send(content);
   };
 
   return (
-    <div className="flex flex-col h-[calc(100vh-3.5rem)]">
-      {/* Header */}
-      <div className="shrink-0 border-b border-border px-4 sm:px-6 py-3 sm:py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/15">
-              <Sparkles className="h-5 w-5 text-primary" />
-            </div>
-            <div>
-              <h1 className="font-heading text-lg sm:text-xl font-bold text-foreground">Visco AI Command Center</h1>
-              <p className="text-[10px] sm:text-xs text-muted-foreground">Powered by VicSO Skills — Ask anything about crypto trading</p>
-            </div>
-          </div>
-          <div className="flex rounded-lg border border-border bg-secondary text-xs">
-            <button onClick={() => setActiveTab("chat")} className={`px-3 py-1.5 font-medium transition-colors ${activeTab === "chat" ? "bg-primary text-primary-foreground rounded-lg" : "text-muted-foreground"}`}>
-              Chat
-            </button>
-            <button onClick={() => setActiveTab("signals")} className={`flex items-center gap-1 px-3 py-1.5 font-medium transition-colors ${activeTab === "signals" ? "bg-primary text-primary-foreground rounded-lg" : "text-muted-foreground"}`}>
-              <Zap className="h-3 w-3" /> Signals
-            </button>
-            <button onClick={() => setActiveTab("history")} className={`flex items-center gap-1 px-3 py-1.5 font-medium transition-colors ${activeTab === "history" ? "bg-primary text-primary-foreground rounded-lg" : "text-muted-foreground"}`}>
-              <History className="h-3 w-3" /> History ({chatHistory.length})
-            </button>
-          </div>
+    <div className="flex h-[calc(100vh-7rem)] flex-col">
+      <div className="flex items-start justify-between gap-3 flex-wrap mb-3">
+        <div>
+          <h1 className="font-heading text-xl sm:text-2xl font-bold text-foreground flex items-center gap-2">
+            <Bot className="h-5 w-5 text-primary" /> AI Command Center
+          </h1>
+          <p className="mt-1 text-xs sm:text-sm text-muted-foreground">
+            Conversational interface to the Smart Money Copy Agent — full context on signals, wallets, bets
+          </p>
         </div>
+        <button
+          onClick={reset}
+          disabled={messages.length === 0}
+          className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-1.5 text-xs text-muted-foreground hover:text-foreground disabled:opacity-50 transition-colors"
+        >
+          <RotateCcw className="h-3.5 w-3.5" /> Reset
+        </button>
       </div>
 
-      {activeTab === "signals" ? (
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
-          <div className="max-w-2xl mx-auto">
-            <SignalWidget defaultSymbol="BTC" autoRefresh={true} refreshInterval={60000} />
+      {/* Live signal strip — shows the agent's current top opinions, gives the user something to ask about */}
+      {signals.length > 0 && (
+        <div className="mb-3 rounded-lg border border-primary/20 bg-primary/5 p-2.5">
+          <div className="flex items-center gap-1.5 text-[10px] text-primary uppercase tracking-wider mb-1.5">
+            <Zap className="h-3 w-3" /> Live signal context
           </div>
-        </div>
-      ) : activeTab === "history" ? (
-        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-2">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-heading text-sm font-semibold text-foreground">Chat History</h3>
-            {chatHistory.length > 0 && (
-              <button onClick={clearHistory} className="flex items-center gap-1 text-xs text-destructive hover:underline">
-                <Trash2 className="h-3 w-3" /> Clear All
-              </button>
-            )}
-          </div>
-          {chatHistory.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-8 text-center">No chat history yet</p>
-          ) : (
-            chatHistory.map(session => (
-              <motion.div
-                key={session.id}
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex items-center justify-between gap-3 rounded-lg border border-border bg-card p-3 hover:bg-secondary/50 transition-colors cursor-pointer"
-                onClick={() => loadSession(session)}
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-foreground truncate">{session.title}</p>
-                  <div className="flex items-center gap-2 mt-1 text-[10px] text-muted-foreground">
-                    <Clock className="h-3 w-3" />
-                    {new Date(session.timestamp).toLocaleString()}
-                    <span>· {session.messages.length} messages</span>
-                  </div>
-                </div>
-                <button onClick={(e) => { e.stopPropagation(); removeSession(session.id); }} className="p-1 text-muted-foreground hover:text-destructive">
-                  <Trash2 className="h-3.5 w-3.5" />
-                </button>
-              </motion.div>
-            ))
-          )}
-        </div>
-      ) : (
-        <>
-          {/* Chat area */}
-          <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4 space-y-4 scrollbar-thin">
-            {messages.length === 0 && (
-              <div className="flex flex-col items-center justify-center py-8 sm:py-16 space-y-6">
-                <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
-                  <Bot className="h-8 w-8 text-primary" />
-                </div>
-                <div className="text-center space-y-2 max-w-lg">
-                  <h2 className="font-heading text-lg font-bold text-foreground">Welcome to Visco AI</h2>
-                  <p className="text-sm text-muted-foreground">Your intelligent trading assistant. Ask about any token, strategy, or market trend.</p>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3 w-full max-w-xl">
-                  {quickActions.map(a => (
-                    <button
-                      key={a.label}
-                      onClick={() => handleSend(a.query)}
-                      className="flex items-center gap-2 rounded-xl border border-border bg-card p-3 text-left text-xs text-foreground hover:bg-secondary hover:border-primary/30 transition-all"
-                    >
-                      <a.icon className="h-4 w-4 text-primary shrink-0" />
-                      <span className="line-clamp-1">{a.label}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {messages.map(msg => (
-              <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[85%] sm:max-w-[70%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                  msg.role === "user"
-                    ? "bg-primary text-primary-foreground"
-                    : "bg-card border border-border text-foreground"
-                }`}>
-                  {msg.verdict && (
-                    <span className={`inline-block rounded-full border px-2.5 py-0.5 text-[10px] font-bold mb-2 ${verdictColor(msg.verdict)}`}>
-                      {msg.verdict}
-                    </span>
-                  )}
-                  <div className="prose prose-sm prose-invert max-w-none [&_strong]:text-foreground [&_p]:text-foreground/90 [&_li]:text-foreground/90 [&_h1]:text-foreground [&_h2]:text-foreground [&_h3]:text-foreground">
-                    {msg.content.split("\n").map((line, i) => {
-                      const cleaned = line.replace(/^#{1,3}\s*/, "");
-                      if (line.startsWith("#")) return <p key={i} className="font-bold text-foreground">{cleaned}</p>;
-                      return <p key={i} className="whitespace-pre-line">{line}</p>;
-                    })}
-                  </div>
-                  {msg.tokenSymbol && msg.role === "assistant" && (
-                    <div className="mt-2 flex items-center gap-2 flex-wrap">
-                      <button
-                        onClick={() => navigate(`/analyzer?token=${msg.tokenSymbol}`)}
-                        className="flex items-center gap-1 text-xs text-primary hover:underline"
-                      >
-                        <Search className="h-3 w-3" /> Full analysis →
-                      </button>
-                      <button
-                        onClick={() => navigate(`/trading?token=${msg.tokenSymbol}`)}
-                        className="flex items-center gap-1 text-xs text-emerald-500 hover:underline"
-                      >
-                        <TrendingUp className="h-3 w-3" /> Trade →
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-            ))}
-
-            {loading && (
-              <div className="flex justify-start">
-                <div className="flex items-center gap-2 rounded-2xl bg-card border border-border px-4 py-3 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin text-primary" /> Analyzing with VicSO Skills...
-                </div>
-              </div>
-            )}
-            <div ref={messagesEndRef} />
-          </div>
-
-          {/* Input */}
-          <div className="shrink-0 border-t border-border p-3 sm:p-4 bg-background">
-            <div className="flex gap-2 max-w-3xl mx-auto">
-              <input
-                ref={inputRef}
-                value={input}
-                onChange={e => setInput(e.target.value)}
-                onKeyDown={e => e.key === "Enter" && handleSend()}
-                placeholder="Ask Visco AI anything... (e.g. 'Should I buy ETH?', 'Analyze 0x...')"
-                className="flex-1 rounded-xl border border-border bg-card px-4 py-3 text-sm text-foreground outline-none focus:border-primary placeholder:text-muted-foreground"
-              />
+          <div className="flex gap-2 overflow-x-auto scrollbar-thin">
+            {signals.slice(0, 5).map((s) => (
               <button
-                onClick={() => handleSend()}
-                disabled={loading || !input.trim()}
-                className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground disabled:opacity-40 hover:bg-primary/90 transition-colors"
+                key={s.id}
+                onClick={() => handleSend(`Tell me about your ${s.side} signal on "${s.market_label ?? s.market_id}".`)}
+                className="shrink-0 rounded-md border border-border bg-card px-2.5 py-1.5 text-[10px] text-left hover:border-primary/40 transition-colors"
               >
-                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+                <div className="flex items-center gap-1.5">
+                  <span className={`font-semibold ${s.side === "BUY" ? "text-emerald-500" : s.side === "SELL" ? "text-red-500" : "text-muted-foreground"}`}>{s.side}</span>
+                  <span className="text-muted-foreground">·</span>
+                  <span className="text-foreground">{s.confidence}%</span>
+                </div>
+                <p className="text-foreground line-clamp-1 max-w-[180px]">{s.market_label ?? s.market_id}</p>
               </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto rounded-xl border border-border bg-card p-3 sm:p-4 space-y-3 scrollbar-thin">
+        {messages.length === 0 && !pending && (
+          <div className="h-full flex flex-col items-center justify-center text-center py-8">
+            <Sparkles className="h-10 w-10 text-muted-foreground/40 mb-3" />
+            <p className="text-sm text-foreground font-medium">Ask the agent anything</p>
+            <p className="mt-1 text-xs text-muted-foreground max-w-md">
+              It has live context on signals, tracked wallets, and your bet history. Try a quick prompt below or type your own.
+            </p>
+            <div className="mt-5 flex flex-wrap gap-2 justify-center max-w-2xl">
+              {QUICK_PROMPTS.map((q) => (
+                <button
+                  key={q}
+                  onClick={() => handleSend(q)}
+                  className="rounded-full border border-border bg-secondary/40 px-3 py-1.5 text-[11px] text-foreground hover:bg-secondary transition-colors"
+                >
+                  {q}
+                </button>
+              ))}
             </div>
           </div>
-        </>
-      )}
+        )}
+
+        <AnimatePresence initial={false}>
+          {messages.map((m, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              className={`flex gap-3 ${m.role === "user" ? "flex-row-reverse" : ""}`}
+            >
+              <div className={`h-7 w-7 rounded-full shrink-0 flex items-center justify-center ${
+                m.role === "user" ? "bg-primary/15" : "bg-emerald-500/15"
+              }`}>
+                {m.role === "user" ? <User className="h-3.5 w-3.5 text-primary" /> : <Bot className="h-3.5 w-3.5 text-emerald-500" />}
+              </div>
+              <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-3.5 py-2 ${
+                m.role === "user"
+                  ? "bg-primary text-primary-foreground rounded-tr-sm"
+                  : "bg-secondary/60 text-foreground rounded-tl-sm"
+              }`}>
+                <p className="text-sm whitespace-pre-wrap leading-relaxed">{m.content}</p>
+                {m.isStub && (
+                  <span className="inline-block mt-1.5 text-[9px] font-semibold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-500">
+                    STUB · set ANTHROPIC_API_KEY for live reasoning
+                  </span>
+                )}
+              </div>
+            </motion.div>
+          ))}
+        </AnimatePresence>
+
+        {pending && (
+          <div className="flex gap-3">
+            <div className="h-7 w-7 rounded-full bg-emerald-500/15 flex items-center justify-center">
+              <Bot className="h-3.5 w-3.5 text-emerald-500" />
+            </div>
+            <div className="rounded-2xl bg-secondary/60 px-3.5 py-2 flex items-center gap-2">
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+              <span className="text-xs text-muted-foreground">Reasoning...</span>
+            </div>
+          </div>
+        )}
+
+        {error && (
+          <div className="rounded-lg border border-red-500/30 bg-red-500/10 p-3 text-xs text-red-500">{error}</div>
+        )}
+
+        <div ref={endRef} />
+      </div>
+
+      {/* Input */}
+      <div className="mt-3 flex gap-2">
+        <input
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              e.preventDefault();
+              handleSend();
+            }
+          }}
+          placeholder="Ask the agent... (Enter to send)"
+          className="flex-1 rounded-lg border border-border bg-secondary py-2.5 px-4 text-sm text-foreground outline-none focus:border-primary"
+        />
+        <button
+          onClick={() => handleSend()}
+          disabled={pending || !input.trim()}
+          className="rounded-lg bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-1.5"
+        >
+          <Send className="h-3.5 w-3.5" /> Send
+        </button>
+      </div>
     </div>
   );
 }

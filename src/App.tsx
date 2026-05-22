@@ -7,16 +7,19 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { wagmiConfig } from "@/lib/wagmiConfig";
 import AppLayout from "@/components/layout/AppLayout";
 import Index from "./pages/Index";
+import PredictionMarkets from "./pages/PredictionMarkets";
+import MarketDetail from "./pages/MarketDetail";
+import PerpsIntel from "./pages/PerpsIntel";
+import Trading from "./pages/Trading";
 import TokenAnalyzer from "./pages/TokenAnalyzer";
+import AICommandCenter from "./pages/AICommandCenter";
 import SmartMoney from "./pages/SmartMoney";
 import WalletDetail from "./pages/WalletDetail";
 import Alerts from "./pages/Alerts";
-import Trading from "./pages/Trading";
 import SettingsPage from "./pages/Settings";
 import Profile from "./pages/Profile";
 import Admin from "./pages/Admin";
 import Auth from "./pages/Auth";
-import AICommandCenter from "./pages/AICommandCenter";
 import NotFound from "./pages/NotFound";
 import Portfolio from "./pages/Portfolio";
 
@@ -37,9 +40,12 @@ const App = () => (
                   <AppLayout>
                     <Routes>
                       <Route path="/" element={<Index />} />
+                      <Route path="/markets" element={<PredictionMarkets />} />
+                      <Route path="/markets/:marketId" element={<MarketDetail />} />
+                      <Route path="/perps" element={<PerpsIntel />} />
                       <Route path="/trading" element={<Trading />} />
-                      <Route path="/ai" element={<AICommandCenter />} />
                       <Route path="/analyzer" element={<TokenAnalyzer />} />
+                      <Route path="/ai" element={<AICommandCenter />} />
                       <Route path="/smart-money" element={<SmartMoney />} />
                       <Route path="/smart-money/:address" element={<WalletDetail />} />
                       <Route path="/portfolio" element={<Portfolio />} />

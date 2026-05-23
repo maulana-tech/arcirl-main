@@ -22,9 +22,9 @@ This is a direct execution of three [Research Insights](./CONTEXT.md) the Agora 
 
 | Criteria | Weight | How we hit it |
 |---|---|---|
-| **Agentic Sophistication** | 30% | Anthropic-backed `signal-engine` edge function + `pg_cron` 5-minute autonomous trigger + on-chain reasoning-trace hash pinning to Arc |
+| **Agentic Sophistication** | 30% | NVIDIA/Anthropic-backed `signal-engine` edge function (real LLM signals) + `pg_cron` 5-minute autonomous trigger + SHA-256 reasoning-trace hash pinning |
 | **Traction** | 30% | Intercepts Polymarket's existing user pool. Builder codes = real USDC fees during event window. Public `BuilderFeeWidget` showing live earnings. |
-| **Circle Tool Usage** | 20% | Wallets (embedded signup), Paymaster (gas-free betting), Gateway (cross-chain USDC funding), Contracts (`LeaderBond` slash-bond on Arc), USDC (native settlement) |
+| **Circle Tool Usage** | 20% | Wallets (embedded signup via `circle-wallet` edge function), Paymaster (gas sponsorship), Gateway (cross-chain funding), Contracts (`LeaderBond` slash-bond [deployed](https://testnet.arcscan.app/address/0x6d4d017dE8d0A36dce7856Ee989624C6A18cD9Ea) on Arc), USDC-native gas |
 | **Innovation** | 20% | Cross-venue unification + builder-code monetization + slash-bonded leader bonds — all hinted at by organizers, executed end-to-end |
 
 ## Product flow
@@ -94,13 +94,21 @@ VITE_CIRCLE_APP_ID=
 # Polymarket builder code — https://docs.polymarket.com/trading/clients/builder
 VITE_POLYMARKET_BUILDER_ID=
 
-# Arc L1 (from ARC CLI)
-VITE_ARC_RPC=https://arc-node.thecanteenapp.com/
-VITE_ARC_CHAIN_ID=
-VITE_ARC_USDC_ADDRESS=
+# Arc L1
+VITE_ARC_CHAIN_ID=5042002
+VITE_ARC_RPC=https://rpc.testnet.arc.network
+VITE_ARC_USDC_ADDRESS=0x3600000000000000000000000000000000000000
 
-# Anthropic (Supabase secret, not VITE_)
+# WalletConnect
+VITE_WALLETCONNECT_PROJECT_ID=
+
+# LLM (Supabase secrets, not VITE_)
+# supabase secrets set NVIDIA_API_KEY=...
 # supabase secrets set ANTHROPIC_API_KEY=...
+
+# Circle API key (Supabase secret)
+# supabase secrets set CIRCLE_API_KEY=...
+
 ```
 
 ### Run
@@ -123,7 +131,8 @@ forge install foundry-rs/forge-std --no-commit
 forge script script/Deploy.s.sol --rpc-url arc_testnet --broadcast
 ```
 
-See [contracts/README.md](./contracts/README.md) for details.
+**Deployed:** `0x6d4d017dE8d0A36dce7856Ee989624C6A18cD9Ea` on Arc testnet (chain 5042002).
+See [`DEPLOY_PROOF.md`](./contracts/DEPLOY_PROOF.md) for the on-chain proof.
 
 ### Apply Supabase migrations
 
@@ -133,6 +142,8 @@ supabase functions deploy signal-engine
 supabase functions deploy hyperliquid-fetch
 supabase functions deploy polymarket-traders
 supabase functions deploy ave-wallet
+supabase functions deploy circle-wallet
+supabase functions deploy oracle-leaderboard-rank
 ```
 
 Set up the `pg_cron` job to trigger the signal engine every 5 minutes (run once in SQL editor):

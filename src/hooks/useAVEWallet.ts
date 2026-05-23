@@ -1,14 +1,11 @@
 import { useState, useCallback } from "react";
+import { fnFetch, SUPABASE_URL } from "@/integrations/supabase/client";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
-const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
-
-async function aveWalletFetch(params: string) {
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/ave-wallet?${params}`, {
-    headers: { Authorization: `Bearer ${SUPABASE_KEY}`, apikey: SUPABASE_KEY },
+function aveWalletFetch(params: string) {
+  return fnFetch(`${SUPABASE_URL}/functions/v1/ave-wallet?${params}`).then(r => {
+    if (!r.ok) throw new Error(`API error ${r.status}`);
+    return r.json();
   });
-  if (!res.ok) throw new Error(`API error ${res.status}`);
-  return res.json();
 }
 
 export interface WalletInfo {

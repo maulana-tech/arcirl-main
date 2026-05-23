@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, fnFetch, SUPABASE_URL } from "@/integrations/supabase/client";
 
 export type WalletVenue = "hyperliquid" | "polymarket" | "onchain";
 
@@ -79,8 +79,6 @@ export function useSmartWallets(venue?: WalletVenue) {
 
 // ─── Top traders fetchers (per venue) ──────────────────────────────────────
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-
 export interface TopHLTrader {
   address: `0x${string}`;
   accountValue: number;
@@ -88,7 +86,7 @@ export interface TopHLTrader {
 }
 
 export async function fetchTopHLTraders(limit = 25): Promise<TopHLTrader[]> {
-  const res = await fetch(
+  const res = await fnFetch(
     `${SUPABASE_URL}/functions/v1/hyperliquid-fetch?action=leaderboard&limit=${limit}`,
   );
   if (!res.ok) return [];
@@ -105,7 +103,7 @@ export interface TopPMTrader {
 }
 
 export async function fetchTopPMTraders(limit = 25): Promise<TopPMTrader[]> {
-  const res = await fetch(
+  const res = await fnFetch(
     `${SUPABASE_URL}/functions/v1/polymarket-traders?action=top-traders&limit=${limit}`,
   );
   if (!res.ok) return [];

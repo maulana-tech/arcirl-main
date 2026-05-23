@@ -1,14 +1,11 @@
 import { defineChain } from "viem";
 
-// TODO: Replace placeholders with real values from ARC CLI output.
-// Install: `uv tool install git+https://github.com/the-canteen-dev/ARC-cli`
-// Docs: https://arc-node.thecanteenapp.com/
-const ARC_CHAIN_ID = Number(import.meta.env.VITE_ARC_CHAIN_ID) || 0;
+const ARC_CHAIN_ID = Number(import.meta.env.VITE_ARC_CHAIN_ID) || 5042002;
 export const ARC_RPC_URL =
-  import.meta.env.VITE_ARC_RPC || "https://arc-node.thecanteenapp.com/";
+  import.meta.env.VITE_ARC_RPC || "https://rpc.testnet.arc.network";
 
 export const arc = defineChain({
-  id: ARC_CHAIN_ID || 421614,
+  id: ARC_CHAIN_ID,
   name: "Arc Testnet",
   nativeCurrency: { name: "USD Coin", symbol: "USDC", decimals: 6 },
   rpcUrls: {
@@ -16,10 +13,10 @@ export const arc = defineChain({
     public: { http: [ARC_RPC_URL] },
   },
   blockExplorers: {
-    default: { name: "Arc Explorer", url: "https://arc-node.thecanteenapp.com/" },
+    default: { name: "ArcScan", url: "https://testnet.arcscan.app" },
   },
   testnet: true,
 });
 
 export const ARC_USDC_ADDRESS =
-  (import.meta.env.VITE_ARC_USDC_ADDRESS as `0x${string}`) || "0x0000000000000000000000000000000000000000";
+  (import.meta.env.VITE_ARC_USDC_ADDRESS as `0x${string}`) || "0x3600000000000000000000000000000000000000";

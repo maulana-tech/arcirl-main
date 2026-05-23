@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { createEmbeddedWallet } from "@/lib/circle";
 import type { User, Session } from "@supabase/supabase-js";
 
 interface AuthContextType {
@@ -7,6 +8,7 @@ interface AuthContextType {
   session: Session | null;
   loading: boolean;
   isAdmin: boolean;
+  circleWallet: { id: string; address: string } | null;
   signUp: (email: string, password: string, username?: string) => Promise<{ error: Error | null }>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
@@ -19,6 +21,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [circleWallet, setCircleWallet] = useState<{ id: string; address: string } | null>(null);
 
   useEffect(() => {
     let mounted = true;
@@ -72,7 +75,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   const signUp = async (email: string, password: string, username?: string) => {
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -80,6 +83,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         emailRedirectTo: window.location.origin,
       },
     });
+    if (!error) {
+      const uid = data.user?.id;
+      if (uid) {
+        createEmbeddedWallet(uid).then((wallet) => {
+          setCircleWallet({ id: wallet.id, address: wallet.address });
+        }).catch(() => {});
+      }
+    }
     return { error: error as Error | null };
   };
 
@@ -93,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, isAdmin, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, isAdmin, circleWallet, signUp, signIn, signOut }}>
       {children}
     </AuthContext.Provider>
   );

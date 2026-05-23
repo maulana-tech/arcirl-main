@@ -1,5 +1,5 @@
 import { useEffect, useState, useCallback } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase, fnFetch, SUPABASE_URL } from "@/integrations/supabase/client";
 
 export type SignalVenue = "hyperliquid" | "polymarket" | "onchain";
 export type SignalSide = "BUY" | "SELL" | "HOLD";
@@ -64,11 +64,9 @@ export function useUnifiedSignals(opts?: { venue?: SignalVenue; limit?: number }
 }
 
 // Trigger an out-of-band signal-engine run (e.g. for a "Refresh signals" button).
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 export async function triggerSignalEngine(opts?: { maxSignals?: number; sourceWallets?: string[] }) {
-  const res = await fetch(`${SUPABASE_URL}/functions/v1/signal-engine`, {
+  const res = await fnFetch(`${SUPABASE_URL}/functions/v1/signal-engine`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify(opts ?? {}),
   });
   if (!res.ok) throw new Error(`signal-engine [${res.status}]`);

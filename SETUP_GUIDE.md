@@ -7,11 +7,12 @@
 ---
 
 ### A1.1 — Circle Developer Account
-1. Go to: https://developers.circle.com
+1. Go to: https://console.circle.com/signup
 2. Sign up / Log in
-3. Create a new App
-4. Copy the **App ID** (you'll need this for `VITE_CIRCLE_APP_ID`)
-5. Docs: https://developers.circle.com/wallets
+3. Navigate to **Wallets → User Controlled → Configurator**
+4. Copy the **App ID** (for `VITE_CIRCLE_APP_ID`)
+5. Create an **API Key** at **API & Client Keys** → Create a key → API Key
+6. Docs: https://developers.circle.com/wallets
 
 ---
 
@@ -184,7 +185,7 @@ bun run dev
 
 | Issue | Solution |
 |---|---|
-| Circle App ID not found | Check Circle Developer dashboard |
+| Circle App ID not found | Check https://console.circle.com → Wallets → User Controlled → Configurator |
 | Polymarket builder pending | Start Day 1 — approval can take 1-3 days |
 | Arc chain ID = 0 | Run `arc setup` again |
 | Anthropic errors | Check API key in Supabase secrets |

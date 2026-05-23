@@ -19,10 +19,17 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+const NVIDIA_KEY = Deno.env.get("NVIDIA_API_KEY");
 const ANTHROPIC_KEY = Deno.env.get("ANTHROPIC_API_KEY");
+const LLM_KEY = NVIDIA_KEY || ANTHROPIC_KEY;
+const LLM_PROVIDER = LLM_KEY
+  ? (Deno.env.get("LLM_PROVIDER") || (NVIDIA_KEY ? "nvidia" : "anthropic"))
+  : null;
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-const MODEL = Deno.env.get("ANTHROPIC_MODEL") || "claude-opus-4-7";
+const NVIDIA_MODEL = "meta/llama-3.3-70b-instruct";
+const ANTHROPIC_MODEL = "claude-sonnet-4-20250514";
+const MODEL = Deno.env.get("LLM_MODEL") || (LLM_PROVIDER === "nvidia" ? NVIDIA_MODEL : ANTHROPIC_MODEL);
 
 interface SignalRow {
   venue: "hyperliquid" | "polymarket" | "onchain";
@@ -53,8 +60,14 @@ Deno.serve(async (req) => {
     const context = await gatherContext(supabase, sourceWallets);
 
     let signals: SignalRow[];
-    if (ANTHROPIC_KEY) {
-      signals = await callClaude(context, maxSignals);
+    const hasWallets = context.wallets.length > 0;
+    if (LLM_KEY && hasWallets) {
+      try {
+        signals = await callLLM(context, maxSignals);
+      } catch (e) {
+        console.error("LLM call failed, falling back to stub:", e);
+        signals = stubSignals(context, maxSignals);
+      }
     } else {
       signals = stubSignals(context, maxSignals);
     }
@@ -71,16 +84,37 @@ Deno.serve(async (req) => {
       return json({ error: "Insert failed", details: error.message }, 500);
     }
 
-    return json({ inserted: enriched.length, isStub: !ANTHROPIC_KEY });
+    return json({ inserted: enriched.length, isStub: !LLM_KEY });
   } catch (err) {
     return json({ error: "Internal error", details: String(err) }, 500);
   }
 });
 
 async function gatherContext(supabase: any, sourceWallets: string[]) {
-  const wallets = sourceWallets.length > 0
-    ? sourceWallets
-    : (await supabase.from("tracked_wallets").select("address, venue, label").limit(50)).data ?? [];
+  let wallets: { address: string; venue: string; label: string | null }[] = [];
+  if (sourceWallets.length > 0) {
+    wallets = sourceWallets.map((a) => ({ address: a, venue: "hyperliquid", label: null }));
+  } else {
+    wallets = (await supabase.from("tracked_wallets").select("address, venue, label").limit(50)).data ?? [];
+    // Fallback: pull seed leaderboard from hyperliquid-fetch if DB is empty
+    if (wallets.length === 0) {
+      try {
+        const res = await fetch(`${SUPABASE_URL}/functions/v1/hyperliquid-fetch?action=leaderboard&limit=10`, {
+          headers: { Authorization: `Bearer ${SERVICE_KEY}` },
+        });
+        if (res.ok) {
+          const body = await res.json();
+          if (body.traders?.length > 0) {
+            wallets = body.traders.map((t: any) => ({
+              address: t.address,
+              venue: "hyperliquid",
+              label: `HL trader #${t.address.slice(0, 6)}`,
+            }));
+          }
+        }
+      } catch { /* swallow */ }
+    }
+  }
 
   // Fetch PM markets for context (free public endpoint, cheap call).
   let markets: any[] = [];
@@ -92,7 +126,7 @@ async function gatherContext(supabase: any, sourceWallets: string[]) {
   return { wallets, markets: markets.slice(0, 20) };
 }
 
-async function callClaude(context: any, maxSignals: number): Promise<SignalRow[]> {
+async function callLLM(context: any, maxSignals: number): Promise<SignalRow[]> {
   const systemPrompt = `You are the Smart Money Copy Agent — an autonomous trading analyst for prediction markets (Polymarket), perpetual futures (Hyperliquid), and onchain swaps (Arc). You watch smart-money wallets and propose +EV trades when their moves align with market mispricing.
 
 Output strict JSON only, no prose. Schema:
@@ -122,27 +156,20 @@ ${JSON.stringify(context.markets.map((m: any) => ({ id: m.id, q: m.question, vol
 
 Produce up to ${maxSignals} actionable signals.`;
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": ANTHROPIC_KEY!,
-      "anthropic-version": "2023-06-01",
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      max_tokens: 4096,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }],
-    }),
-  });
+  const text = LLM_PROVIDER === "nvidia"
+    ? await callNvidia(systemPrompt, userPrompt, 4096, NVIDIA_MODEL)
+    : await callAnthropic(systemPrompt, userPrompt, 4096, ANTHROPIC_MODEL);
 
-  if (!res.ok) throw new Error(`Anthropic [${res.status}]: ${(await res.text()).slice(0, 200)}`);
-  const data = await res.json();
-  const text = data.content?.[0]?.text ?? "{}";
+  // Try to extract JSON — handle markdown fences and leading/trailing prose
+  let jsonStr = text.trim();
+  const fenceMatch = jsonStr.match(/```(?:json)?\s*([\s\S]*?)```/);
+  if (fenceMatch) jsonStr = fenceMatch[1].trim();
+  const braceStart = jsonStr.indexOf('{');
+  const braceEnd = jsonStr.lastIndexOf('}');
+  if (braceStart !== -1 && braceEnd > braceStart) jsonStr = jsonStr.slice(braceStart, braceEnd + 1);
 
   let parsed: { signals?: any[] } = {};
-  try { parsed = JSON.parse(text); } catch { parsed = {}; }
+  try { parsed = JSON.parse(jsonStr); } catch { parsed = {}; }
   const list = parsed.signals ?? [];
 
   return list.slice(0, maxSignals).map((s: any) => ({
@@ -163,11 +190,55 @@ Produce up to ${maxSignals} actionable signals.`;
   }));
 }
 
+async function callAnthropic(system: string, user: string, maxTokens: number, model: string): Promise<string> {
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": ANTHROPIC_KEY!,
+      "anthropic-version": "2023-06-01",
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: maxTokens,
+      system,
+      messages: [{ role: "user", content: user }],
+    }),
+  });
+  if (!res.ok) throw new Error(`Anthropic [${res.status}]: ${(await res.text()).slice(0, 200)}`);
+  const data = await res.json();
+  return data.content?.[0]?.text ?? "{}";
+}
+
+async function callNvidia(system: string, user: string, maxTokens: number, model: string): Promise<string> {
+  const res = await fetch("https://integrate.api.nvidia.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${NVIDIA_KEY!}`,
+    },
+    body: JSON.stringify({
+      model,
+      max_tokens: maxTokens,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: user },
+      ],
+    }),
+  });
+  if (!res.ok) throw new Error(`NVIDIA [${res.status}]: ${(await res.text()).slice(0, 200)}`);
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content ?? "{}";
+}
+
 function stubSignals(context: any, maxSignals: number): SignalRow[] {
-  // Deterministic stub: pick top-volume Polymarket markets and emit
-  // illustrative signals so the UI has content while ANTHROPIC_API_KEY is
-  // not provisioned. Clearly flagged with is_stub=true.
-  const picks = context.markets.slice(0, maxSignals);
+  const picks = context.markets.length > 0
+    ? context.markets.slice(0, maxSignals)
+    : Array.from({ length: maxSignals }, (_, i) => ({
+        id: `demo-${i}`,
+        question: i === 0 ? "Will BTC reach $100k by June 2026?" : i === 1 ? "Will ETH flip BTC this cycle?" : `Demo market ${i + 1}`,
+        volume: "10000000",
+      }));
   const wallets = context.wallets.slice(0, 3).map((w: any) => w.address ?? w);
 
   return picks.map((m: any, i: number) => {
@@ -181,7 +252,7 @@ function stubSignals(context: any, maxSignals: number): SignalRow[] {
       size_suggested_usdc: 25,
       edge_estimate: 0.05 + i * 0.02,
       confidence: 55 + i * 5,
-      reasoning_trace: `STUB SIGNAL — LLM key not configured. Selected by 24h volume rank (#${i + 1}, $${Number(m.volume ?? 0).toLocaleString()}). Source wallets sampled: ${wallets.join(", ") || "none tracked yet"}. Replace with real Anthropic-backed reasoning once ANTHROPIC_API_KEY is set.`,
+      reasoning_trace: `STUB SIGNAL — LLM key not configured. Selected by 24h volume rank (#${i + 1}, $${Number(m.volume ?? 0).toLocaleString()}). Source wallets sampled: ${wallets.join(", ") || "none tracked yet"}. Set NVIDIA_API_KEY or ANTHROPIC_API_KEY for real LLM-backed reasoning.`,
       trace_hash: null,
       arc_tx_hash: null,
       source_wallets: wallets,

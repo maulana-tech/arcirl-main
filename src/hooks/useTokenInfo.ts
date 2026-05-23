@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+import { fnFetch, SUPABASE_URL } from "@/integrations/supabase/client";
 
 export interface TokenInfo {
   name: string;
@@ -43,7 +42,7 @@ export function useTokenInfo(query: string | undefined, chain?: string) {
     try {
       const param = /^(0x|T|[1-9A-HJ-NP-Za-km-z]{32,})/.test(query) ? "address" : "symbol";
       const url = `${SUPABASE_URL}/functions/v1/ave-token?${param}=${encodeURIComponent(query)}${chain ? `&chain=${chain}` : ""}`;
-      const res = await fetch(url);
+      const res = await fnFetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const json = await res.json();
       if (json.error) throw new Error(json.error);

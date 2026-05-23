@@ -1,4 +1,5 @@
 import { useState, useCallback } from "react";
+import { fnFetch, SUPABASE_URL } from "@/integrations/supabase/client";
 
 export interface ChatMessage {
   role: "user" | "assistant";
@@ -6,8 +7,6 @@ export interface ChatMessage {
   isStub?: boolean;
   ts: number;
 }
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 
 export function useAgentChat() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -23,9 +22,8 @@ export function useAgentChat() {
       setMessages(history);
       setPending(true);
       try {
-        const res = await fetch(`${SUPABASE_URL}/functions/v1/agent-chat`, {
+        const res = await fnFetch(`${SUPABASE_URL}/functions/v1/agent-chat`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             messages: history.map(({ role, content }) => ({ role, content })),
           }),

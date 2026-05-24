@@ -1,4 +1,4 @@
-# Visco AI — Migration Delivery Log
+# Arcirl AI — Migration Delivery Log
 
 > **Status:** All 6 phases complete. Build green. Demoable in stub mode; live mode requires the external setup checklist at the bottom.
 > **Source target:** SoSoValue Buildathon (deprecated)
@@ -57,7 +57,7 @@ Cross-venue copy-trading agent — one product, three sources of alpha:
 
 | # | Question | Decision |
 |---|---|---|
-| 1 | Branding | Keep "Visco AI" |
+| 1 | Branding | "Arcirl AI" |
 | 2 | SoSoValue/SoDEX cleanup scope | **Full rip** — no exceptions |
 | 3 | Auth strategy | Supabase (identity) + Circle Wallets (on-chain execution) — dual |
 | 4 | LLM key | Deferred; `signal-engine` ships with stub fallback until provisioned |

@@ -1,4 +1,4 @@
-# Visco AI — Setup Guide
+# Arcirl AI — Setup Guide
 
 ## Quick Start Checklist
 

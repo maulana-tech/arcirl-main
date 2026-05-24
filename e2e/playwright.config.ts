@@ -4,7 +4,7 @@ export default defineConfig({
   testDir: "./e2e",
   timeout: 60000,
   use: {
-    baseURL: "https://vicso-main.vercel.app",
+    baseURL: "https://arcirl-main.vercel.app",
     headless: true,
     viewport: { width: 1280, height: 800 },
   },

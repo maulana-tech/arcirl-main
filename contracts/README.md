@@ -1,6 +1,6 @@
 # Contracts
 
-Solidity contracts for the Visco AI Smart Money Copy Agent — deployed to Arc.
+Solidity contracts for the Arcirl AI Smart Money Copy Agent — deployed to Arc.
 
 ## LeaderBond.sol
 

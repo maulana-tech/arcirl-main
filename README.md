@@ -1,4 +1,4 @@
-# Visco AI — Smart Money Copy Agent
+# Arcirl AI — Smart Money Copy Agent
 
 > Autonomous cross-venue copy-trading agent — **Agora Agents Hackathon submission** (hosted by Canteen, powered by Circle & Arc).
 
@@ -6,7 +6,7 @@
 ![Settlement](https://img.shields.io/badge/Settlement-Arc%20L1-6366F1?style=flat-square)
 ![Stablecoin](https://img.shields.io/badge/Stablecoin-USDC-2775CA?style=flat-square)
 
-**Visco AI** tracks alpha traders across **Hyperliquid perps**, **Polymarket prediction markets**, and **onchain wallets**, generates +EV signals using an autonomous LLM reasoning loop (NVIDIA Llama 3.3 or Anthropic Claude Sonnet 4), and executes prediction-market bets via **Polymarket builder codes** — earning USDC fees on every fill while settling on Arc with sub-second finality.
+**Arcirl AI** tracks alpha traders across **Hyperliquid perps**, **Polymarket prediction markets**, and **onchain wallets**, generates +EV signals using an autonomous LLM reasoning loop (NVIDIA Llama 3.3 or Anthropic Claude Sonnet 4), and executes prediction-market bets via **Polymarket builder codes** — earning USDC fees on every fill while settling on Arc with sub-second finality.
 
 ## Why this product
 

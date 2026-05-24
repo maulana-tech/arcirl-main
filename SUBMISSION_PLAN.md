@@ -1,4 +1,4 @@
-# Visco AI — Submission Plan
+# Arcirl AI — Submission Plan
 
 > **Current honest score** (audit di 2026-05-15): **~17/100**.
 > **Goal:** ≥65/100 (Standout) atau ≥80/100 (Top 3 / $5k–$10k).

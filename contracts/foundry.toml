@@ -10,4 +10,4 @@ optimizer_runs = 1000
 arc_testnet = "${ARC_RPC_URL}"
 
 [etherscan]
-arc_testnet = { key = "${ETHERSCAN_API_KEY}", chain = 421614 }
+arc_testnet = { key = "${ETHERSCAN_API_KEY}", chain = 5042002 }

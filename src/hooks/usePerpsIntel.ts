@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
+import { fnFetch, SUPABASE_URL } from "@/integrations/supabase/client";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const HL_FN = `${SUPABASE_URL}/functions/v1/hyperliquid-fetch`;
 
 export interface HLPosition {
@@ -28,17 +28,15 @@ export function useTopHLTraders(limit = 15) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(`${HL_FN}?action=leaderboard&limit=${limit}`);
+      const res = await fnFetch(`${HL_FN}?action=leaderboard&limit=${limit}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       const seedTraders = data.traders ?? [];
 
-      // Fan out positions in parallel. Each call is cached server-side
-      // (15s TTL), so refetching is cheap.
       const enriched = await Promise.all(
         seedTraders.map(async (t: any) => {
           try {
-            const r = await fetch(`${HL_FN}?action=positions&address=${t.address}`);
+            const r = await fnFetch(`${HL_FN}?action=positions&address=${t.address}`);
             if (!r.ok) return { ...t, positions: [] };
             const pd = await r.json();
             return { ...t, positions: pd.positions ?? [] };

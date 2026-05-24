@@ -1,4 +1,4 @@
-# Visco AI — Agent Instructions
+# Arcirl AI — Agent Instructions
 
 Concise dev guide. For the bigger picture see [`CLAUDE.md`](./CLAUDE.md), for product/hackathon context see [`PLANNING.md`](./PLANNING.md) and [`CONTEXT.md`](./CONTEXT.md).
 
@@ -26,17 +26,21 @@ forge script script/Deploy.s.sol --rpc-url arc_testnet --broadcast
 
 ## Stack
 
-- **Package manager**: bun (`bun.lock` + `bun.lockb` authoritative; `package.json` `packageManager` field is stale)
+- **Package manager**: bun (`bun.lock` + `bun.lockb` authoritative; `package.json` `packageManager` field is stale). If `bun install` hangs, fallback to `npm install`.
 - **Framework**: Vite 5 + React 18 + TypeScript 5
 - **UI**: shadcn/ui (style: default, baseColor: slate) + Tailwind CSS 3 + Radix
 - **Routing**: react-router-dom v6
 - **Web3**: wagmi v3 + viem v2 + WalletConnect — chains: **arc** (custom L1), mainnet, bsc, polygon, arbitrum
 - **Backend**: Supabase (auth, Postgres, Realtime, pg_cron, edge functions)
-- **LLM**: Anthropic Claude via `signal-engine` edge function
+- **LLM**: NVIDIA (`meta/llama-3.3-70b-instruct`) or Anthropic (`claude-sonnet-4-20250514`) via `signal-engine` edge function
 - **Data fetching**: @tanstack/react-query v5
 - **Charts**: lightweight-charts, recharts, framer-motion
 - **Testing**: vitest 3 (unit) + @playwright/test (e2e via lovable-agent-playwright-config)
 - **Contracts**: Solidity 0.8.24 + Foundry → Arc testnet
+
+## Vite Plugin Note
+
+Uses `@vitejs/plugin-react` (Babel) instead of `@vitejs/plugin-react-swc` because the SWC native binary crashes on Node v22 + macOS x64. If SWC ever works, revert to `@vitejs/plugin-react-swc` for faster builds.
 
 ## Path Alias
 
@@ -58,6 +62,8 @@ forge script script/Deploy.s.sol --rpc-url arc_testnet --broadcast
 ## Vite Config
 
 Dev server `:::8080`, HMR overlay disabled. `componentTagger` (from `lovable-tagger`) only in development mode. Deduplicates: react, react-dom, react/jsx-runtime, react/jsx-dev-runtime, @tanstack/react-query, @tanstack/query-core.
+
+To run dev locally: `npm run dev` (use npm, not bun, if bun hangs on your system).
 
 ## TypeScript
 

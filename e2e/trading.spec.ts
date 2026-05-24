@@ -1,6 +1,6 @@
 import { test, expect, chromium } from "@playwright/test";
 
-const BASE = "https://vicso-main.vercel.app";
+const BASE = "https://arcirl-main.vercel.app";
 
 test("Trading page loads and shows data", async ({ page }) => {
   const errors: string[] = [];

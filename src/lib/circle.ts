@@ -1,9 +1,4 @@
-// Circle developer platform wrappers — Wallets, Paymaster, Gateway.
-// Docs: https://developers.circle.com
-//
-// These are stub interfaces. Real SDK wiring happens once VITE_CIRCLE_APP_ID
-// is provisioned. Keep the surface area stable so call sites don't churn.
-
+import { supabase, SUPABASE_URL } from "@/integrations/supabase/client";
 import { arc, ARC_USDC_ADDRESS } from "./arc";
 
 export const CIRCLE_APP_ID = import.meta.env.VITE_CIRCLE_APP_ID as string | undefined;
@@ -11,7 +6,7 @@ export const CIRCLE_APP_ID = import.meta.env.VITE_CIRCLE_APP_ID as string | unde
 export interface CircleWallet {
   id: string;
   address: `0x${string}`;
-  blockchain: "ARC" | "ETH" | "MATIC" | "ARB" | "BASE";
+  blockchain: string;
   state: "LIVE" | "FROZEN";
 }
 
@@ -26,32 +21,77 @@ export interface PaymasterQuote {
   payload: unknown;
 }
 
-// ─── Wallets ────────────────────────────────────────────────────────────────
-// Embedded wallet provisioning at signup. Maps Supabase user.id → Circle wallet.
+function fnFetch(url: string, init?: RequestInit) {
+  const key = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY || "";
+  return fetch(url, {
+    ...init,
+    headers: {
+      ...init?.headers,
+      apikey: key,
+      Authorization: `Bearer ${key}`,
+    },
+  });
+}
+
+async function callCircleFn(action: string, body?: Record<string, unknown>) {
+  const url = `${SUPABASE_URL}/functions/v1/circle-wallet?action=${action}`;
+  const res = await fnFetch(url, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: body ? JSON.stringify(body) : undefined,
+  });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`circle-wallet[${action}]: ${err}`);
+  }
+  return res.json();
+}
 
 export async function createEmbeddedWallet(userId: string): Promise<CircleWallet> {
   if (!CIRCLE_APP_ID) {
     throw new Error("VITE_CIRCLE_APP_ID not configured");
   }
-  // TODO: call Circle Wallets SDK. Returns wallet bound to user, deployed on Arc.
-  throw new Error("createEmbeddedWallet: not implemented — pending Circle App ID");
+  const data = await callCircleFn("create-wallet", { userId });
+  if (data.error) throw new Error(data.error);
+  return data.wallet;
 }
 
 export async function getWalletByUserId(userId: string): Promise<CircleWallet | null> {
   if (!CIRCLE_APP_ID) return null;
-  // TODO: query Circle SDK for wallet associated with userId.
-  return null;
+  try {
+    const data = await callCircleFn("get-wallet", { userId });
+    return data.wallet ?? null;
+  } catch {
+    return null;
+  }
 }
-
-// ─── Gateway ────────────────────────────────────────────────────────────────
-// Unified USDC balance across chains. Sub-500ms cross-chain transfers.
 
 export async function getUnifiedBalance(walletAddress: `0x${string}`): Promise<UnifiedBalance> {
   if (!CIRCLE_APP_ID) {
     return { totalUsdc: "0", perChain: {} };
   }
-  // TODO: Gateway SDK call — aggregate USDC across supported chains.
-  throw new Error("getUnifiedBalance: not implemented");
+  try {
+    const { data: wallets } = await supabase
+      .from("circle_wallets")
+      .select("wallet_id")
+      .eq("address", walletAddress)
+      .maybeSingle();
+    if (!wallets) return { totalUsdc: "0", perChain: {} };
+    const data = await callCircleFn("get-balance", { walletId: wallets.wallet_id });
+    const balances = data.balances ?? [];
+    let totalUsdc = 0;
+    const perChain: Record<string, string> = {};
+    for (const b of balances) {
+      if (b.token?.symbol === "USDC") {
+        const amt = Number(b.amount ?? 0);
+        totalUsdc += amt;
+        perChain[b.blockchain ?? "unknown"] = String(amt);
+      }
+    }
+    return { totalUsdc: String(totalUsdc), perChain };
+  } catch {
+    return { totalUsdc: "0", perChain: {} };
+  }
 }
 
 export async function bridgeToArc(params: {
@@ -62,12 +102,15 @@ export async function bridgeToArc(params: {
   if (!CIRCLE_APP_ID) {
     throw new Error("VITE_CIRCLE_APP_ID not configured");
   }
-  // TODO: Gateway transfer source → Arc destination.
-  throw new Error("bridgeToArc: not implemented");
+  const res = await fnFetch(`${SUPABASE_URL}/functions/v1/circle-wallet?action=bridge-to-arc`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(params),
+  });
+  if (!res.ok) throw new Error(await res.text());
+  const data = await res.json();
+  return data;
 }
-
-// ─── Paymaster ──────────────────────────────────────────────────────────────
-// Gas in USDC, not volatile native token. Critical UX for high-frequency betting.
 
 export async function quotePaymasterFee(params: {
   walletAddress: `0x${string}`;
@@ -78,8 +121,17 @@ export async function quotePaymasterFee(params: {
   if (!CIRCLE_APP_ID) {
     return { feeUsdc: "0", expiresAt: 0, payload: null };
   }
-  // TODO: Paymaster RPC quote for sponsorship in USDC.
-  throw new Error("quotePaymasterFee: not implemented");
+  const data = await callCircleFn("quote-paymaster", {
+    walletAddress: params.walletAddress,
+    to: params.to,
+    data: params.data,
+    value: params.value?.toString() ?? "0",
+  });
+  return {
+    feeUsdc: data.quote?.feeAmountUsdc ?? "0",
+    expiresAt: data.quote?.expiresAt ?? 0,
+    payload: data.quote ?? null,
+  };
 }
 
 export async function sendSponsoredTx(params: {
@@ -92,14 +144,16 @@ export async function sendSponsoredTx(params: {
   if (!CIRCLE_APP_ID) {
     throw new Error("VITE_CIRCLE_APP_ID not configured");
   }
-  // TODO: submit tx through Paymaster bundler.
-  throw new Error("sendSponsoredTx: not implemented");
+  const quotePayload = params.paymasterQuote.payload as Record<string, unknown> | null;
+  const data = await callCircleFn("send-sponsored-tx", {
+    walletAddress: params.walletAddress,
+    to: params.to,
+    data: params.data,
+    value: params.value?.toString() ?? "0",
+    quoteId: String(quotePayload?.id ?? quotePayload?.quoteId ?? ""),
+  });
+  return { txHash: data.tx?.txHash ?? "0x0" };
 }
-
-// ─── App Kit · Swap ──────────────────────────────────────────────────────────
-// Wraps Circle App Kit's Swap component. Per-call quote then signed execution
-// through the user's embedded wallet. Same chain only — cross-chain goes
-// through Gateway.
 
 export interface SwapQuote {
   fromToken: `0x${string}`;
@@ -120,8 +174,7 @@ export async function quoteSwap(params: {
   if (!CIRCLE_APP_ID) {
     throw new Error("VITE_CIRCLE_APP_ID not configured");
   }
-  // TODO: Call Circle App Kit Swap quote endpoint.
-  throw new Error("quoteSwap: not implemented");
+  throw new Error("quoteSwap: Circle App Kit not installed — install @circle-fin/circle-sdk");
 }
 
 export async function executeSwap(params: {
@@ -132,9 +185,7 @@ export async function executeSwap(params: {
   if (!CIRCLE_APP_ID) {
     throw new Error("VITE_CIRCLE_APP_ID not configured");
   }
-  // TODO: Sign + submit. If sponsorWithPaymaster, route through Paymaster.
-  throw new Error("executeSwap: not implemented");
+  throw new Error("executeSwap: Circle App Kit not installed — install @circle-fin/circle-sdk");
 }
 
-// ─── Constants re-export for convenience ─────────────────────────────────────
 export { arc, ARC_USDC_ADDRESS };

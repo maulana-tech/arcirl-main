@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from "react";
+import { fnFetch, SUPABASE_URL } from "@/integrations/supabase/client";
 
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
 const PM_FN = `${SUPABASE_URL}/functions/v1/polymarket-traders`;
 
 export interface PMMarketRow {
@@ -30,7 +30,7 @@ export function usePMMarkets(opts?: { limit?: number; category?: string }) {
         limit: String(opts?.limit ?? 50),
       });
       if (opts?.category) params.set("category", opts.category);
-      const res = await fetch(`${PM_FN}?${params}`);
+      const res = await fnFetch(`${PM_FN}?${params}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setMarkets(data.markets ?? []);

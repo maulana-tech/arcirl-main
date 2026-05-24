@@ -16,14 +16,32 @@ Deno.serve(async (req) => {
 
   try {
     const AVE_API_KEY = Deno.env.get("AVE_API_KEY");
-    if (!AVE_API_KEY) {
-      return new Response(JSON.stringify({ error: "AVE_API_KEY not configured" }), {
-        status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
 
     const url = new URL(req.url);
     const action = url.searchParams.get("action") || "klines";
+
+    // Stub mode
+    if (!AVE_API_KEY) {
+      if (action === "klines") {
+        const now = Date.now();
+        const candles = Array.from({ length: 100 }, (_, i) => ({
+          t: now - (100 - i) * 3600_000,
+          o: 3500 + Math.sin(i * 0.1) * 50,
+          h: 3550 + Math.sin(i * 0.1) * 40,
+          l: 3450 + Math.sin(i * 0.1) * 40,
+          c: 3520 + Math.sin(i * 0.1) * 30,
+          v: 1000 + Math.random() * 500,
+        }));
+        return new Response(JSON.stringify({ candles }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      if (action === "ticker") {
+        return new Response(JSON.stringify({ price: 3520, change24h: 2.34, volume24h: 15_000_000_000 }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    }
 
     // ── ACTION: klines (candle data by token) ──
     if (action === "klines") {

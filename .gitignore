@@ -35,3 +35,14 @@ Thumbs.db
 
 # Vite build artifacts
 *.timestamp-*.mjs
+
+# Forge build artifacts
+contracts/out/
+contracts/cache/
+
+# Supabase CLI temp
+supabase/.temp/
+
+# Circle wallet setup artifacts
+recovery/
+scripts/

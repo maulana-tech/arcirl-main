@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { fnFetch, SUPABASE_URL } from "@/integrations/supabase/client";
 
 export interface WalletTransaction {
   hash: string;
@@ -57,13 +58,8 @@ export function useWalletScan() {
     setError(null);
 
     try {
-      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/wallet-scan?address=${encodeURIComponent(address)}&chain=${encodeURIComponent(chain)}`;
-      const res = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-          apikey: import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY,
-        },
-      });
+      const url = `${SUPABASE_URL}/functions/v1/wallet-scan?address=${encodeURIComponent(address)}&chain=${encodeURIComponent(chain)}`;
+      const res = await fnFetch(url);
 
       if (!res.ok) throw new Error(`Scan failed (${res.status})`);
       const result = await res.json();

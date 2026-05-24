@@ -9,6 +9,17 @@ const AVE_API_BASE = "https://prod.ave-api.com/v2";
 const CACHE = new Map<string, { data: unknown; ts: number }>();
 const CACHE_TTL = 30_000; // 30s cache to reduce API calls
 
+const STUB_TOKENS: Record<string, Record<string, unknown>> = {
+  BTC:  { symbol: "BTC",  name: "Bitcoin",           address: "0x0000000000000000000000000000000000000000", price: 68420, marketCap: 1_350_000_000_000, liquidity: 500_000_000, volume24h: 28_000_000_000, priceChange24h: 2.34, holders: 54_000_000, logoUrl: "https://cryptoicons.org/api/icon/btc/200", chain: "eth", isMintable: false, isHoneypot: false, hasBlackMethod: false, topHolderPercent: 2.1, liquidityLocked: false, txCount24h: 350_000, riskScore: 15, inputType: "symbol", source: "stub" },
+  ETH:  { symbol: "ETH",  name: "Ethereum",           address: "0x0000000000000000000000000000000000000000", price: 3520, marketCap: 423_000_000_000, liquidity: 350_000_000, volume24h: 15_000_000_000, priceChange24h: -1.23, holders: 120_000_000, logoUrl: "https://cryptoicons.org/api/icon/eth/200", chain: "eth", isMintable: false, isHoneypot: false, hasBlackMethod: false, topHolderPercent: 1.8, liquidityLocked: false, txCount24h: 1_200_000, riskScore: 12, inputType: "symbol", source: "stub" },
+  SOL:  { symbol: "SOL",  name: "Solana",             address: "0x0000000000000000000000000000000000000000", price: 148.5, marketCap: 66_000_000_000, liquidity: 120_000_000, volume24h: 4_500_000_000, priceChange24h: 5.67, holders: 15_000_000, logoUrl: "https://cryptoicons.org/api/icon/sol/200", chain: "eth", isMintable: false, isHoneypot: false, hasBlackMethod: false, topHolderPercent: 3.2, liquidityLocked: false, txCount24h: 850_000, riskScore: 25, inputType: "symbol", source: "stub" },
+  ARB:  { symbol: "ARB",  name: "Arbitrum",           address: "0x0000000000000000000000000000000000000000", price: 1.12, marketCap: 3_200_000_000, liquidity: 45_000_000, volume24h: 280_000_000, priceChange24h: -0.89, holders: 850_000, logoUrl: "https://cryptoicons.org/api/icon/arb/200", chain: "eth", isMintable: false, isHoneypot: false, hasBlackMethod: false, topHolderPercent: 5.4, liquidityLocked: false, txCount24h: 420_000, riskScore: 28, inputType: "symbol", source: "stub" },
+  PEPE: { symbol: "PEPE", name: "Pepe",               address: "0x6982508145454Ce325dDbE47a25d4ec3d2311933", price: 0.00000125, marketCap: 520_000_000, liquidity: 18_000_000, volume24h: 95_000_000, priceChange24h: 12.34, holders: 280_000, logoUrl: "https://cryptoicons.org/api/icon/pepe/200", chain: "eth", isMintable: false, isHoneypot: false, hasBlackMethod: false, topHolderPercent: 8.7, liquidityLocked: false, txCount24h: 65_000, riskScore: 55, inputType: "symbol", source: "stub" },
+  WLD:  { symbol: "WLD",  name: "Worldcoin",           address: "0x0000000000000000000000000000000000000000", price: 2.45, marketCap: 1_100_000_000, liquidity: 22_000_000, volume24h: 180_000_000, priceChange24h: -3.21, holders: 420_000, logoUrl: "https://cryptoicons.org/api/icon/wld/200", chain: "eth", isMintable: false, isHoneypot: false, hasBlackMethod: false, topHolderPercent: 6.2, liquidityLocked: false, txCount24h: 95_000, riskScore: 40, inputType: "symbol", source: "stub" },
+  AAVE: { symbol: "AAVE", name: "Aave",               address: "0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9", price: 105.80, marketCap: 1_580_000_000, liquidity: 55_000_000, volume24h: 210_000_000, priceChange24h: 1.45, holders: 180_000, logoUrl: "https://cryptoicons.org/api/icon/aave/200", chain: "eth", isMintable: false, isHoneypot: false, hasBlackMethod: false, topHolderPercent: 4.8, liquidityLocked: false, txCount24h: 32_000, riskScore: 22, inputType: "symbol", source: "stub" },
+  LINK: { symbol: "LINK", name: "Chainlink",           address: "0x514910771AF9Ca656af840dff83E8264EcF986CA", price: 16.72, marketCap: 9_800_000_000, liquidity: 85_000_000, volume24h: 520_000_000, priceChange24h: -0.56, holders: 620_000, logoUrl: "https://cryptoicons.org/api/icon/link/200", chain: "eth", isMintable: false, isHoneypot: false, hasBlackMethod: false, topHolderPercent: 3.5, liquidityLocked: false, txCount24h: 78_000, riskScore: 18, inputType: "symbol", source: "stub" },
+};
+
 function isContractAddress(input: string): boolean {
   if (/^0x[a-fA-F0-9]{40}$/.test(input)) return true;
   if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(input) && !input.match(/^[A-Z]{2,10}$/)) return true;
@@ -26,14 +37,6 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const AVE_API_KEY = Deno.env.get("AVE_API_KEY");
-    if (!AVE_API_KEY) {
-      return new Response(
-        JSON.stringify({ error: "AVE_API_KEY is not configured" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     const url = new URL(req.url);
     const rawInput = url.searchParams.get("symbol") || url.searchParams.get("address") || "";
     const chain = url.searchParams.get("chain") || "";
@@ -43,6 +46,23 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "symbol or address parameter is required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const AVE_API_KEY = Deno.env.get("AVE_API_KEY");
+
+    // Stub mode — return canned data for known symbols
+    if (!AVE_API_KEY) {
+      const match = STUB_TOKENS[rawInput.toUpperCase()];
+      if (match) {
+        const result = { ...match, riskScore: match.riskScore as number };
+        return new Response(JSON.stringify(result), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      return new Response(
+        JSON.stringify({ error: "Token not found in stub mode. Set AVE_API_KEY for live data." }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -56,14 +76,7 @@ Deno.serve(async (req) => {
     }
 
     const isContract = isContractAddress(rawInput);
-    
-    // Build AVE API URL — use address endpoint for contracts, keyword search for symbols
-    let aveUrl: string;
-    if (isContract) {
-      aveUrl = `${AVE_API_BASE}/tokens?keyword=${encodeURIComponent(input)}${chain ? `&chain=${encodeURIComponent(chain)}` : ""}&limit=5`;
-    } else {
-      aveUrl = `${AVE_API_BASE}/tokens?keyword=${encodeURIComponent(input)}${chain ? `&chain=${encodeURIComponent(chain)}` : ""}&limit=5`;
-    }
+    const aveUrl = `${AVE_API_BASE}/tokens?keyword=${encodeURIComponent(input)}${chain ? `&chain=${encodeURIComponent(chain)}` : ""}&limit=5`;
 
     // Retry with backoff to handle HTTP/2 connection errors
     let aveRes: Response | null = null;

@@ -54,12 +54,24 @@ Deno.serve(async (req) => {
   try {
     const MORALIS_API_KEY = Deno.env.get("MORALIS_API_KEY");
     const AVE_API_KEY = Deno.env.get("AVE_API_KEY");
-    if (!MORALIS_API_KEY) return new Response(JSON.stringify({ error: "MORALIS_API_KEY not configured" }), { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } });
 
     const url = new URL(req.url);
     const action = url.searchParams.get("action") || "info";
     const address = url.searchParams.get("address") || "";
     const chain = url.searchParams.get("chain") || "eth";
+
+    // Stub mode — return demo data when API keys are missing
+    if (!MORALIS_API_KEY || !AVE_API_KEY) {
+      const stubResp = (data: unknown) => new Response(JSON.stringify(data), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+      if (action === "info") return stubResp({ address, chain, totalBalance: 45200, totalPnl: 1230, totalTrades: 47, roi: 8.2, winRate: 61, tag: "stub-whale" });
+      if (action === "tokens") return stubResp({ tokens: [{ symbol: "ETH", name: "Ethereum", balance: 12.5, usdValue: 44000, price: 3520, contractAddress: "0x...", logo: "https://cryptoicons.org/api/icon/eth/200", chain, allocation: 85 }, { symbol: "USDC", name: "USD Coin", balance: 3200, usdValue: 3200, price: 1, contractAddress: "0x...", logo: "https://cryptoicons.org/api/icon/usdc/200", chain, allocation: 15 }], totalValue: 47200 });
+      if (action === "pnl") return stubResp({ items: [{ token: "ETH", tokenAddress: "0x...", realizedPnl: 890, unrealizedPnl: 340, totalPnl: 1230, buyVolume: 52000, sellVolume: 49500, avgBuyPrice: 3340, avgSellPrice: 3480, trades: 47 }], totals: { realizedPnl: 890, unrealizedPnl: 340, totalPnl: 1230 } });
+      if (action === "txs") return stubResp({ transactions: [], cursor: null, hasMore: false, totalCount: 0 });
+      if (action === "signals") return stubResp({ signals: [] });
+      if (action === "smart-wallets") return stubResp({ wallets: [] });
+    }
 
     if (!address && action !== "smart-wallets" && action !== "signals") {
       return new Response(JSON.stringify({ error: "address parameter required" }), { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } });

@@ -1,4 +1,4 @@
-# Visco AI — Agent Instructions
+# Arcirl AI — Agent Instructions
 
 Concise dev guide. For the bigger picture see [`CLAUDE.md`](./CLAUDE.md), for product/hackathon context see [`PLANNING.md`](./PLANNING.md) and [`CONTEXT.md`](./CONTEXT.md).
 

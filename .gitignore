@@ -42,3 +42,7 @@ contracts/cache/
 
 # Supabase CLI temp
 supabase/.temp/
+
+# Circle wallet setup artifacts
+recovery/
+scripts/

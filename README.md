@@ -6,7 +6,7 @@
 ![Settlement](https://img.shields.io/badge/Settlement-Arc%20L1-6366F1?style=flat-square)
 ![Stablecoin](https://img.shields.io/badge/Stablecoin-USDC-2775CA?style=flat-square)
 
-**Visco AI** tracks alpha traders across **Hyperliquid perps**, **Polymarket prediction markets**, and **onchain wallets**, generates +EV signals using an autonomous Claude-backed reasoning loop, and executes prediction-market bets via **Polymarket builder codes** — earning USDC fees on every fill while settling on Arc with sub-second finality.
+**Visco AI** tracks alpha traders across **Hyperliquid perps**, **Polymarket prediction markets**, and **onchain wallets**, generates +EV signals using an autonomous LLM reasoning loop (NVIDIA Llama 3.3 or Anthropic Claude Sonnet 4), and executes prediction-market bets via **Polymarket builder codes** — earning USDC fees on every fill while settling on Arc with sub-second finality.
 
 ## Why this product
 
@@ -22,21 +22,21 @@ This is a direct execution of three [Research Insights](./CONTEXT.md) the Agora 
 
 | Criteria | Weight | How we hit it |
 |---|---|---|
-| **Agentic Sophistication** | 30% | NVIDIA/Anthropic-backed `signal-engine` edge function (real LLM signals) + `pg_cron` 5-minute autonomous trigger + SHA-256 reasoning-trace hash pinning |
+| **Agentic Sophistication** | 30% | NVIDIA Llama 3.3 / Anthropic Claude Sonnet 4 `signal-engine` edge function (real LLM signals) + `pg_cron` 5-minute autonomous trigger + SHA-256 reasoning-trace hash pinning |
 | **Traction** | 30% | Intercepts Polymarket's existing user pool. Builder codes = real USDC fees during event window. Public `BuilderFeeWidget` showing live earnings. |
-| **Circle Tool Usage** | 20% | Wallets (embedded signup via `circle-wallet` edge function), Paymaster (gas sponsorship), Gateway (cross-chain funding), Contracts (`LeaderBond` slash-bond [deployed](https://testnet.arcscan.app/address/0x6d4d017dE8d0A36dce7856Ee989624C6A18cD9Ea) on Arc), USDC-native gas |
+| **Circle Tool Usage** | 20% | W3S API integration: Developer-Controlled Wallets on ARC-TESTNET (entity secret + wallet set + RSA-OAEP ciphertext) via `circle-wallet` edge function. Paymaster (gas sponsorship quotes + sponsored tx). `LeaderBond` slash-bond [deployed](https://testnet.arcscan.app/address/0x6d4d017dE8d0A36dce7856Ee989624C6A18cD9Ea) on Arc with oracle rank reporter. USDC-native gas. |
 | **Innovation** | 20% | Cross-venue unification + builder-code monetization + slash-bonded leader bonds — all hinted at by organizers, executed end-to-end |
 
 ## Product flow
 
 ```
                     ┌──────────────────────────┐
-                    │   Smart Wallet Tracker   │  ← RFB 06 (spine)
+                    │   Smart Wallet Tracker   │
                     │   HL + PM + Onchain      │
                     └────────────┬─────────────┘
                                  │
                     ┌────────────▼─────────────┐
-                    │   Signal Engine (LLM)    │  ← RFB 02 reasoning
+                    │   Signal Engine (LLM)    │
                     │   pg_cron · 5 min        │
                     └────────────┬─────────────┘
                                  │
@@ -62,16 +62,33 @@ This is a direct execution of three [Research Insights](./CONTEXT.md) the Agora 
 | Styling | Tailwind + shadcn/ui + Radix |
 | Web3 | wagmi v3 + viem + WalletConnect (Arc + EVM) |
 | Identity + DB + Realtime | Supabase (auth, Postgres, pg_cron, edge functions) |
-| LLM | Anthropic Claude (Opus 4.7 / Sonnet 4.6) via edge function |
-| Execution | Polymarket CLOB (builder code) · Circle Wallets · Paymaster · Gateway |
+| LLM | NVIDIA (`meta/llama-3.3-70b-instruct`) or Anthropic (`claude-sonnet-4-20250514`) — auto-selected based on which API key is set |
+| Execution | Polymarket CLOB (builder code) · Circle W3S API · Paymaster · Gateway |
+| Data | Moralis (wallet scan) · AVE (token data) · Binance/CoinGecko/CryptoCompare (price oracles) |
 | Contracts | Solidity 0.8.24 + Foundry, deployed to Arc |
+
+## Edge Functions
+
+All functions are live and connected to real APIs when keys are configured, with stub fallback when keys are missing:
+
+| Function | Live API | Stub fallback |
+|---|---|---|
+| `signal-engine` | ✅ NVIDIA/Anthropic LLM | Deterministic stub signals |
+| `agent-chat` | ✅ NVIDIA/Anthropic LLM | Stub replies |
+| `circle-wallet` | ✅ Circle W3S (ARC-TESTNET) | Stub wallet |
+| `oracle-leaderboard-rank` | ✅ Arc testnet (LeaderBond) | Stub response |
+| `hyperliquid-fetch` | — | Seed trader data |
+| `polymarket-traders` | ✅ Polymarket API | — |
+| `wallet-scan` | ✅ Moralis | Stub whale data |
+| `ave-token` | ✅ AVE API | Canned token data |
+| `ave-wallet` | — | Stub whale data |
+| `ave-klines` | — | Stub candles |
 
 ## Setup
 
 ### Prerequisites
 - Node 18+, [Bun](https://bun.sh) (recommended)
 - [Foundry](https://book.getfoundry.sh/) for the LeaderBond contract
-- [ARC CLI](https://github.com/the-canteen-dev/ARC-cli) for Arc testnet RPC
 
 ### Install
 
@@ -81,18 +98,18 @@ cp .env.example .env
 # Fill in env vars per the table below
 ```
 
-### Required env vars
+### Required client env vars
 
 ```env
 # Supabase
 VITE_SUPABASE_URL=...
 VITE_SUPABASE_PUBLISHABLE_KEY=...
 
-# Circle Developer Platform — https://developers.circle.com
-VITE_CIRCLE_APP_ID=
+# Circle Developer Platform — https://console.circle.com
+VITE_CIRCLE_APP_ID=b7308a79-fa57-5bed-8654-240b028aeeaf
 
 # Polymarket builder code — https://docs.polymarket.com/trading/clients/builder
-VITE_POLYMARKET_BUILDER_ID=
+VITE_POLYMARKET_BUILDER_ID=0x7f178d13441d900ff266b7c9fe9a2d3fbf5c15f99ee433e8ef1adb00d308d937
 
 # Arc L1
 VITE_ARC_CHAIN_ID=5042002
@@ -100,15 +117,28 @@ VITE_ARC_RPC=https://rpc.testnet.arc.network
 VITE_ARC_USDC_ADDRESS=0x3600000000000000000000000000000000000000
 
 # WalletConnect
-VITE_WALLETCONNECT_PROJECT_ID=
+VITE_WALLETCONNECT_PROJECT_ID=3f9229ce71cbb2c3fa97618d1add0643
+```
 
-# LLM (Supabase secrets, not VITE_)
-# supabase secrets set NVIDIA_API_KEY=...
-# supabase secrets set ANTHROPIC_API_KEY=...
+### Required Supabase secrets
 
-# Circle API key (Supabase secret)
-# supabase secrets set CIRCLE_API_KEY=...
+```bash
+# LLM (at least one)
+supabase secrets set NVIDIA_API_KEY=...
+supabase secrets set ANTHROPIC_API_KEY=...
 
+# Circle W3S API (Developer-Controlled Wallets)
+supabase secrets set CIRCLE_API_KEY=...
+supabase secrets set ENTITY_SECRET=...
+supabase secrets set WALLET_SET_ID=...
+
+# Data providers
+supabase secrets set MORALIS_API_KEY=...
+supabase secrets set AVE_API_KEY=...
+
+# Arc onchain
+supabase secrets set ORACLE_PRIVATE_KEY=...
+supabase secrets set LEADER_BOND_ADDRESS=0x6d4d017dE8d0A36dce7856Ee989624C6A18cD9Ea
 ```
 
 ### Run
@@ -134,16 +164,21 @@ forge script script/Deploy.s.sol --rpc-url arc_testnet --broadcast
 **Deployed:** `0x6d4d017dE8d0A36dce7856Ee989624C6A18cD9Ea` on Arc testnet (chain 5042002).
 See [`DEPLOY_PROOF.md`](./contracts/DEPLOY_PROOF.md) for the on-chain proof.
 
-### Apply Supabase migrations
+### Apply Supabase migrations & deploy edge functions
 
 ```bash
 supabase db push
-supabase functions deploy signal-engine
-supabase functions deploy hyperliquid-fetch
-supabase functions deploy polymarket-traders
-supabase functions deploy ave-wallet
-supabase functions deploy circle-wallet
-supabase functions deploy oracle-leaderboard-rank
+
+supabase functions deploy signal-engine --no-verify-jwt
+supabase functions deploy agent-chat --no-verify-jwt
+supabase functions deploy hyperliquid-fetch --no-verify-jwt
+supabase functions deploy polymarket-traders --no-verify-jwt
+supabase functions deploy circle-wallet --no-verify-jwt
+supabase functions deploy oracle-leaderboard-rank --no-verify-jwt
+supabase functions deploy wallet-scan --no-verify-jwt
+supabase functions deploy ave-wallet --no-verify-jwt
+supabase functions deploy ave-token --no-verify-jwt
+supabase functions deploy ave-klines --no-verify-jwt
 ```
 
 Set up the `pg_cron` job to trigger the signal engine every 5 minutes (run once in SQL editor):
@@ -165,7 +200,7 @@ SELECT cron.schedule(
 src/
   lib/
     arc.ts              Arc L1 chain config
-    circle.ts           Circle Wallets / Paymaster / Gateway wrappers
+    circle.ts           Circle W3S API wrappers (create wallet, balance, Paymaster, swap, bridge)
     polymarket.ts       Polymarket CLOB client (with builder code)
     wagmiConfig.ts      wagmi v3 config (Arc + EVM)
   hooks/
@@ -192,11 +227,16 @@ src/
     BuilderFeeWidget    Public live-earnings counter
 supabase/
   functions/
-    signal-engine       Autonomous Claude-backed signal generator (pg_cron triggered)
-    agent-chat          Conversational Claude endpoint with live signals/wallets/bets context
+    signal-engine       Autonomous LLM signal generator (pg_cron triggered)
+    agent-chat          Conversational LLM endpoint with live signals/wallets/bets context
     hyperliquid-fetch   HL leaderboard + per-trader positions
     polymarket-traders  PM markets + top traders
-    ave-wallet          Onchain wallet inspection (Moralis + AVE)
+    circle-wallet       Circle W3S API proxy (create wallet, balance, Paymaster, sponsored tx)
+    oracle-leaderboard-rank  Reports leader rank to LeaderBond contract on Arc
+    wallet-scan         Onchain wallet inspection via Moralis
+    ave-wallet          AVE whale wallet data
+    ave-token           AVE token data (price, mcap, risk score)
+    ave-klines          AVE klines/candlestick data
 contracts/
   src/LeaderBond.sol    USDC performance bond on tracked leaders, slashable by oracle
 ```

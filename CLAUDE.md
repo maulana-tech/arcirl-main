@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Product
 
-**Visco AI — Smart Money Copy Agent** — Agora Agents Hackathon submission (hosted by Canteen, powered by Circle & Arc).
+**Arcirl AI — Smart Money Copy Agent** — Agora Agents Hackathon submission (hosted by Canteen, powered by Circle & Arc).
 
 Cross-venue autonomous copy-trading agent: tracks Hyperliquid whales + Polymarket alpha traders + onchain wallets, generates +EV signals via a Claude-backed reasoning loop, executes Polymarket bets via builder codes (earning USDC fees), and settles on Arc. The full plan and delivery log is in [`PLANNING.md`](./PLANNING.md); product/hackathon context is in [`CONTEXT.md`](./CONTEXT.md).
 
-**Brand:** Visco AI (kept across migration). **Settlement:** Arc L1. **LLM:** Anthropic Claude (Opus 4.7 / Sonnet 4.6) via edge function.
+**Brand:** Arcirl AI. **Settlement:** Arc L1. **LLM:** Anthropic Claude (Opus 4.7 / Sonnet 4.6) via edge function.
 
 ## Commands
 

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="./public/logo-font.png" alt="Arcirl AI" width="400" />
+</p>
+
 # Arcirl AI — Smart Money Copy Agent
 
 > Autonomous cross-venue copy-trading agent — **Agora Agents Hackathon submission** (hosted by Canteen, powered by Circle & Arc).

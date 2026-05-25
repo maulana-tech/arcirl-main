@@ -33,6 +33,15 @@ export default function BetConfirmModal({ open, onClose, market, signalId, signa
   const fee = (sizeNum * BUILDER_FEE_PERCENT) / 100;
   const stubMode = !BUILDER_ID || !CIRCLE_APP_ID || !isConnected;
 
+  // Debug: log connection state
+  if (typeof window !== "undefined" && open) {
+    console.log("[BetConfirmModal] BUILDER_ID:", BUILDER_ID?.slice(0, 10) + "...");
+    console.log("[BetConfirmModal] CIRCLE_APP_ID:", CIRCLE_APP_ID?.slice(0, 10) + "...");
+    console.log("[BetConfirmModal] isConnected:", isConnected);
+    console.log("[BetConfirmModal] address:", address);
+    console.log("[BetConfirmModal] stubMode:", stubMode);
+  }
+
   const handleConfirm = async () => {
     if (sizeNum <= 0) {
       toast.error("Enter a positive USDC amount");
@@ -153,7 +162,12 @@ export default function BetConfirmModal({ open, onClose, market, signalId, signa
             <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
               <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
               <p className="text-[11px] text-amber-500 leading-relaxed">
-                {!BUILDER_ID ? "VITE_POLYMARKET_BUILDER_ID not set" : "Circle Wallet not configured"} — bet will be recorded as a stub for demo purposes. No on-chain order will be placed.
+                {!isConnected
+                  ? "Connect wallet to place real bets"
+                  : !BUILDER_ID
+                    ? "VITE_POLYMARKET_BUILDER_ID not set"
+                    : "Circle Wallet not configured"
+                } — bet will be recorded for demo purposes. Full CLOB execution requires wallet signing implementation.
               </p>
             </div>
           )}

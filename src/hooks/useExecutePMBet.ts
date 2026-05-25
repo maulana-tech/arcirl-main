@@ -113,6 +113,7 @@ export function useExecutePMBet() {
         status: "PLACED",
         orderId: result.orderId,
         builderFeeUsdc,
+        message: "Bet recorded with builder code (demo mode — CLOB signing not yet implemented)",
       };
       setPending(false);
       setLastResult(ok);

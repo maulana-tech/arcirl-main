@@ -157,17 +157,25 @@ export default function BetConfirmModal({ open, onClose, market, signalId, signa
             </div>
           )}
 
-          {/* Stub warning */}
+          {/* Demo mode notice */}
+          {!stubMode && (
+            <div className="flex items-start gap-2 rounded-lg border border-blue-500/30 bg-blue-500/10 p-3">
+              <Sparkles className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
+              <p className="text-[11px] text-blue-500 leading-relaxed">
+                Demo mode: Bet will be recorded with builder code <code className="font-mono text-[10px]">{BUILDER_ID?.slice(0, 10)}...</code> attached. Full Polymarket CLOB execution with wallet signing coming soon.
+              </p>
+            </div>
+          )}
+
+          {/* Stub warning (no wallet) */}
           {stubMode && (
             <div className="flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/10 p-3">
               <AlertTriangle className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" />
               <p className="text-[11px] text-amber-500 leading-relaxed">
                 {!isConnected
-                  ? "Connect wallet to place real bets"
-                  : !BUILDER_ID
-                    ? "VITE_POLYMARKET_BUILDER_ID not set"
-                    : "Circle Wallet not configured"
-                } — bet will be recorded for demo purposes. Full CLOB execution requires wallet signing implementation.
+                  ? "Connect wallet to enable builder code tracking"
+                  : "Configuration incomplete"
+                } — bet will be recorded as stub for demo purposes.
               </p>
             </div>
           )}
@@ -177,10 +185,10 @@ export default function BetConfirmModal({ open, onClose, market, signalId, signa
             disabled={pending || sizeNum <= 0}
             className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
-            {pending ? "Placing..." : (
+            {pending ? "Recording..." : (
               <>
                 <TrendingUp className="h-4 w-4" />
-                {stubMode ? "Record bet (stub)" : "Place bet"}
+                {stubMode ? "Record bet (stub)" : "Record bet with builder code"}
               </>
             )}
           </button>

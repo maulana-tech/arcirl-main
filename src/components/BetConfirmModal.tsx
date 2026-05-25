@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { X, TrendingUp, AlertTriangle, Coins, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 import { useAccount } from "wagmi";
+import { useNavigate } from "react-router-dom";
 import { useExecutePMBet, BUILDER_FEE_PERCENT, BetRequest } from "@/hooks/useExecutePMBet";
 import { BUILDER_ID } from "@/lib/polymarket";
 import { CIRCLE_APP_ID } from "@/lib/circle";
@@ -26,6 +27,7 @@ export default function BetConfirmModal({ open, onClose, market, signalId, signa
   const [side] = useState<"BUY" | "SELL">("BUY"); // default BUY the chosen outcome
   const { execute, pending } = useExecutePMBet();
   const { address, isConnected } = useAccount();
+  const navigate = useNavigate();
 
   if (!open) return null;
 
@@ -64,8 +66,12 @@ export default function BetConfirmModal({ open, onClose, market, signalId, signa
     };
     const result = await execute(req);
     if (result.status === "PLACED") {
-      toast.success("Bet placed via builder code");
+      toast.success("Bet recorded! Redirecting to homepage...", {
+        description: `Builder fee earned: $${result.builderFeeUsdc.toFixed(2)}`,
+      });
       onClose();
+      // Redirect to homepage to show BuilderFeeWidget with updated earnings
+      setTimeout(() => navigate("/"), 800);
     } else if (result.status === "STUB") {
       toast.message("Recorded as stub", { description: result.message });
       onClose();

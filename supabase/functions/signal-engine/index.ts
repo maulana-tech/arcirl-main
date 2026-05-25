@@ -153,10 +153,10 @@ ${JSON.stringify(context.wallets, null, 2)}
 
 Active Polymarket markets (top by volume):
 ${JSON.stringify(context.markets.map((m: any) => ({
-  condition_id: m.condition_id ?? m.id,
+  condition_id: m.conditionId ?? m.id,
   q: m.question,
   vol: m.volume,
-  end: m.end_date_iso
+  end: m.end_date_iso ?? m.endDate
 })), null, 2)}
 
 Produce up to ${maxSignals} actionable signals.`;
@@ -240,7 +240,7 @@ function stubSignals(context: any, maxSignals: number): SignalRow[] {
   const picks = context.markets.length > 0
     ? context.markets.slice(0, maxSignals)
     : Array.from({ length: maxSignals }, (_, i) => ({
-        id: `demo-${i}`,
+        conditionId: `0xdemo${i}`,
         question: i === 0 ? "Will BTC reach $100k by June 2026?" : i === 1 ? "Will ETH flip BTC this cycle?" : `Demo market ${i + 1}`,
         volume: "10000000",
       }));
@@ -251,7 +251,7 @@ function stubSignals(context: any, maxSignals: number): SignalRow[] {
     const side = sides[i % 3];
     return {
       venue: "polymarket",
-      market_id: String(m.condition_id ?? m.id ?? `stub-${i}`),  // condition_id first
+      market_id: String(m.conditionId ?? m.id ?? `stub-${i}`),  // conditionId (camelCase) first
       market_label: m.question ?? `Stub market #${i + 1}`,
       side,
       size_suggested_usdc: 25,

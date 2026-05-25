@@ -57,8 +57,8 @@ Deno.serve(async (req) => {
       const data = await get(`${GAMMA}/markets?${params}`);
 
       const markets = (Array.isArray(data) ? data : []).map((m: any) => ({
-        id: m.condition_id ?? m.id,  // Use condition_id as canonical ID
-        conditionId: m.condition_id ?? m.id,
+        id: m.conditionId ?? m.id,  // Use conditionId (camelCase) as canonical ID
+        conditionId: m.conditionId ?? m.id,
         question: m.question,
         slug: m.slug,
         endDate: m.end_date_iso ?? m.endDate,

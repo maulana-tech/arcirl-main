@@ -7,7 +7,9 @@
 const CLOB_BASE = "https://clob.polymarket.com";
 const GAMMA_BASE = "https://gamma-api.polymarket.com";
 
-export const BUILDER_ID = import.meta.env.VITE_POLYMARKET_BUILDER_ID as string | undefined;
+// Builder ID with fallback for demo deployment (should be set via VITE_POLYMARKET_BUILDER_ID env var)
+export const BUILDER_ID = (import.meta.env.VITE_POLYMARKET_BUILDER_ID as string | undefined)
+  || "0x7f178d13441d900ff266b7c9fe9a2d3fbf5c15f99ee433e8ef1adb00d308d937";
 
 export interface PMMarket {
   id: string;

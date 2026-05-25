@@ -1,7 +1,9 @@
 import { supabase, SUPABASE_URL } from "@/integrations/supabase/client";
 import { arc, ARC_USDC_ADDRESS } from "./arc";
 
-export const CIRCLE_APP_ID = import.meta.env.VITE_CIRCLE_APP_ID as string | undefined;
+// Circle App ID with fallback for demo deployment (should be set via VITE_CIRCLE_APP_ID env var)
+export const CIRCLE_APP_ID = (import.meta.env.VITE_CIRCLE_APP_ID as string | undefined)
+  || "b7308a79-fa57-5bed-8654-240b028aeeaf";
 
 export interface CircleWallet {
   id: string;

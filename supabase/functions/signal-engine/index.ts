@@ -134,7 +134,7 @@ Output strict JSON only, no prose. Schema:
   "signals": [
     {
       "venue": "polymarket" | "hyperliquid" | "onchain",
-      "market_id": string,
+      "market_id": string (for Polymarket, use the condition_id field from the market list),
       "market_label": string,
       "side": "BUY" | "SELL" | "HOLD",
       "size_suggested_usdc": number,
@@ -152,7 +152,12 @@ Be skeptical. Prefer fewer high-conviction signals over many low-confidence ones
 ${JSON.stringify(context.wallets, null, 2)}
 
 Active Polymarket markets (top by volume):
-${JSON.stringify(context.markets.map((m: any) => ({ id: m.id, q: m.question, vol: m.volume, end: m.end_date_iso })), null, 2)}
+${JSON.stringify(context.markets.map((m: any) => ({
+  condition_id: m.condition_id ?? m.id,
+  q: m.question,
+  vol: m.volume,
+  end: m.end_date_iso
+})), null, 2)}
 
 Produce up to ${maxSignals} actionable signals.`;
 
@@ -246,7 +251,7 @@ function stubSignals(context: any, maxSignals: number): SignalRow[] {
     const side = sides[i % 3];
     return {
       venue: "polymarket",
-      market_id: String(m.id ?? m.condition_id ?? `stub-${i}`),
+      market_id: String(m.condition_id ?? m.id ?? `stub-${i}`),  // condition_id first
       market_label: m.question ?? `Stub market #${i + 1}`,
       side,
       size_suggested_usdc: 25,

@@ -196,9 +196,13 @@ Deno.serve(async (req) => {
     }
 
     const url = new URL(req.url);
+    const rawChain = url.searchParams.get("chain") || "eth";
+    // Normalize chain format: "eth:1" -> "eth", "0x1" -> "eth"
+    const chain = rawChain.split(":")[0].replace(/^0x/, "").toLowerCase();
+
     const parsed = RequestSchema.safeParse({
       address: url.searchParams.get("address") || "",
-      chain: url.searchParams.get("chain") || "eth",
+      chain: chain === "1" ? "eth" : chain === "38" ? "bsc" : chain === "89" ? "polygon" : chain === "a4b1" ? "arbitrum" : chain,
       action: url.searchParams.get("action") || "summary",
     });
 

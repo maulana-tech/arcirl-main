@@ -22,22 +22,14 @@ export function useVisitorTracking() {
     // Insert or update visitor session
     const track = async () => {
       try {
-        const { data: existing } = await supabase
+        // Simple insert-only approach — no SELECT needed (avoid RLS 403)
+        // Use upsert with on_conflict handling if session_id has unique constraint
+        await supabase
           .from("visitor_sessions")
-          .select("id, page_views")
-          .eq("session_id", sessionId)
-          .maybeSingle();
-
-        if (existing) {
-          await supabase
-            .from("visitor_sessions")
-            .update({ last_active: new Date().toISOString(), page_views: (existing.page_views || 0) + 1 })
-            .eq("id", existing.id);
-        } else {
-          await supabase
-            .from("visitor_sessions")
-            .insert({ session_id: sessionId });
-        }
+          .insert(
+            { session_id: sessionId, last_active: new Date().toISOString() },
+            { onConflict: "session_id" }
+          );
       } catch {
         // Silent fail for visitor tracking
       }

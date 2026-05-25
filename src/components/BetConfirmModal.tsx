@@ -2,6 +2,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { X, TrendingUp, AlertTriangle, Coins, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { useAccount } from "wagmi";
 import { useExecutePMBet, BUILDER_FEE_PERCENT, BetRequest } from "@/hooks/useExecutePMBet";
 import { BUILDER_ID } from "@/lib/polymarket";
 import { CIRCLE_APP_ID } from "@/lib/circle";
@@ -24,16 +25,21 @@ export default function BetConfirmModal({ open, onClose, market, signalId, signa
   const [size, setSize] = useState<string>("10");
   const [side] = useState<"BUY" | "SELL">("BUY"); // default BUY the chosen outcome
   const { execute, pending } = useExecutePMBet();
+  const { address, isConnected } = useAccount();
 
   if (!open) return null;
 
   const sizeNum = Number(size) || 0;
   const fee = (sizeNum * BUILDER_FEE_PERCENT) / 100;
-  const stubMode = !BUILDER_ID || !CIRCLE_APP_ID;
+  const stubMode = !BUILDER_ID || !CIRCLE_APP_ID || !isConnected;
 
   const handleConfirm = async () => {
     if (sizeNum <= 0) {
       toast.error("Enter a positive USDC amount");
+      return;
+    }
+    if (!isConnected) {
+      toast.error("Connect wallet first");
       return;
     }
     const req: BetRequest = {
@@ -45,6 +51,7 @@ export default function BetConfirmModal({ open, onClose, market, signalId, signa
       price: market.price,
       sizeUsdc: sizeNum,
       signalId,
+      walletAddress: address,
     };
     const result = await execute(req);
     if (result.status === "PLACED") {
